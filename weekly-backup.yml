@@ -1,0 +1,50 @@
+name: Weekly encrypted D1 backup
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '41 19 * * 6' # Sunday 04:41 JST (best-effort)
+permissions:
+  contents: read
+concurrency:
+  group: affiliate-weekly-backup
+  cancel-in-progress: false
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check backup configuration
+        id: ready
+        shell: bash
+        run: |
+          if [[ -n "$CLOUDFLARE_ACCOUNT_ID" && -n "$CLOUDFLARE_API_TOKEN" && ${#BACKUP_PASSPHRASE} -ge 20 ]]; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'Backup is inactive. Configure encrypted Secrets to enable.'
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Install Wrangler
+        if: steps.ready.outputs.ready == 'true'
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Export, encrypt and integrity-check
+        if: steps.ready.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 export affiliate-ai-db --remote --skip-confirmation --output=/tmp/affiliate-d1.sql
+          node scripts/backup-crypto.mjs encrypt /tmp/affiliate-d1.sql ./affiliate-d1-backup.enc
+          rm -f /tmp/affiliate-d1.sql
+          node scripts/backup-crypto.mjs verify ./affiliate-d1-backup.enc
+      - name: Keep encrypted snapshot outside Cloudflare
+        if: steps.ready.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: encrypted-d1-${{ github.run_id }}
+          path: affiliate-d1-backup.enc
+          retention-days: 30
+          if-no-files-found: error

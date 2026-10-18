@@ -1,0 +1,10 @@
+node_modules/
+.dev.vars
+.env
+.wrangler/
+.DS_Store
+*.log
+*.db
+*.sqlite
+affiliate-d1-backup.enc
+restored.sql

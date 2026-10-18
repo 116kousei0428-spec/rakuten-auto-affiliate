@@ -1,0 +1,13 @@
+{
+  "name":"affiliate-ai-site",
+  "private":true,
+  "version":"1.0.0",
+  "type":"module",
+  "scripts":{
+    "test":"node --test tests/*.test.js",
+    "dev":"wrangler pages dev public",
+    "db:local":"wrangler d1 migrations apply affiliate-ai-db --local",
+    "db:remote":"wrangler d1 migrations apply affiliate-ai-db --remote"
+  },
+  "devDependencies":{"wrangler":"^4.0.0"}
+}
