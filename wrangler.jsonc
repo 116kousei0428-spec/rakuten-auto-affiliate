@@ -1,9 +1,12 @@
 {
   "name": "rakuten-affiliate",
-  "main": "src/worker.js",
+  "main": "./src/worker.js",
   "compatibility_date": "2026-10-24",
   "assets": {
-    "directory": "./dist",
-    "binding": "ASSETS"
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*"
+    ]
   }
 }

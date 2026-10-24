@@ -1,10 +1,11 @@
 {
-  "name": "rakuten-affiliate-pages",
-  "version": "2.0.0",
+  "name": "rakuten-affiliate-github-worker",
+  "version": "4.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/build.mjs",
-    "check": "node --check src/worker.js && node --check public/app.js && node --check functions/api/health.js && node --check scripts/build.mjs"
+    "build": "node scripts/verify.mjs",
+    "check": "node scripts/verify.mjs",
+    "deploy": "npm run check && wrangler deploy"
   }
 }

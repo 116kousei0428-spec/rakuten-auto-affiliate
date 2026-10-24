@@ -1,17 +1,29 @@
-# Rakuten affiliate GitHub/Cloudflare correction v3
+# 楽天アフィリエイト GitHub → Cloudflare Workers（v4）
 
-This archive fixes the missing `src/worker.js` error by adding a real Workers entrypoint and `wrangler.jsonc` referencing it. The application is a demonstration shell, not the previous full affiliate system. API credentials, ranking, article generation, SNS publishing and D1 production integration are not implemented.
+このZIPはGitHub連携で `npx wrangler deploy` を実行する最小構成です。元の楽天全機能は復元していません。現在のサイトはデモ表示です。
 
-## Cloudflare Workers connected to GitHub
+## GitHubへの置き方（重要）
+ZIPを**解凍**し、以下の**中身**をリポジトリ最上位にアップロードします。ZIPそのものや親フォルダ `rakuten_github_worker_v4/` をアップロードしないでください。
 
-Use root directory `/`, build command `npm run build`, deploy command `npx wrangler deploy`. The `wrangler.jsonc` points to `src/worker.js` and static output `dist`.
+```
+repo/
+  wrangler.jsonc
+  package.json
+  src/worker.js
+  public/index.html
+  public/app.js
+  public/style.css
+  scripts/verify.mjs
+```
 
-## Cloudflare Pages connected to GitHub
+古い `wrangler.toml`、`wrangler.json`、`dist/`、別の `package.json` 等が残っていると衝突・誤参照する場合があります。**空の新規リポジトリ**への配置が確実です。既存リポジトリに上書きする場合は古いファイルが残らないことを確認してください。
 
-Pages build command `npm run build`, output directory `dist`, root `/`. If the Cloudflare project is a Workers project, do not configure it as Pages; follow Workers settings above. The Pages Function in `functions/api/health.js` is for Pages only.
+## Cloudflare Workers GitHub連携設定
+- Root directory: `/`（リポジトリルート）
+- Build command: `npm run build`（任意：実際には構成検証のみ）
+- Deploy command: `npx wrangler deploy`
 
-## IMPORTANT when replacing existing GitHub repository files
+※Cloudflare Pagesの `dist` 出力指定を使う構成ではありません。Cloudflare Workersのリポジトリ連携を使用します。
 
-Remove obsolete `wrangler.toml`, duplicate Wrangler configs, and old Worker entrypoint settings if they conflict. GitHub upload of a ZIP does not automatically delete old files already in the repository. The error can recur if an older config/deployment setting wins.
-
-Locally: `npm run check` and `npm run build`.
+## ローカル検証
+`npm run check` と `npm run build`。実クラウドへのデプロイ成否は認証・Cloudflare設定・GitHub配置に依存します。
