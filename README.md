@@ -1,29 +1,9 @@
-# 楽天アフィリエイト GitHub → Cloudflare Workers v5
+# Rakuten GitHub Worker v7
 
-GitHub連携のCloudflare **Workers** 用プロジェクトです。`src/worker.js`は使用しません。エントリポイントはリポジトリ直下の`worker.js`です。
+GitHub repository **root** に `worker.js`, `wrangler.jsonc`, `public/`, `package.json` を配置してください。Cloudflare の deploy command は `npx wrangler deploy` です。
 
-## アップロード方法
-ZIPを展開して**フォルダ自体ではなく、中身**（`worker.js`, `wrangler.jsonc`, `public/`, `package.json`など）をGitHubリポジトリの最上位に配置してください。既存の`wrangler.toml`, `wrangler.json`, 古い`wrangler.jsonc`や余分なサブディレクトリに注意。
+Cloudflare の Secret: `RAKUTEN_APP_ID`, `RAKUTEN_ACCESS_KEY`, `RAKUTEN_AFFILIATE_ID`。GitHub に秘密情報をコミットしないでください。
 
-## Cloudflare 設定
-- 接続方法: GitHub → Workers Builds
-- Root directory: リポジトリ直下（空欄または `/`）
-- Build command: `npm run build`（ビルド不要なら空欄でもよい）
-- Deploy command: `npx wrangler deploy`
-- リポジトリに `worker.js` と `wrangler.jsonc` が並ぶことを確認
+変更点: 同一検索の成功結果を Cloudflare Cache API に最大10分キャッシュ。楽天APIで429を受けた場合、各エッジ拠点で最大2分の再呼び出し抑制。実際の429解除時間は楽天側が決めるため、2分後に成功する保証はありません。キャッシュはエッジごと・ベストエフォートです。実際の楽天API接続とCloudflareデプロイは未検証。
 
-## 楽天API設定
-CloudflareのWorker設定の Variables and Secrets に以下を登録してください。
-- `RAKUTEN_APP_ID`: 楽天アプリID
-- `RAKUTEN_ACCESS_KEY`: 楽天APIアクセスキー（secret推奨）
-- `RAKUTEN_AFFILIATE_ID`: 楽天アフィリエイトID（任意。成果計測には必要）
-
-楽天市場商品検索API 2026-07-01を利用。ブラウザに認証キーは露出しません。公式仕様: https://webservice.rakuten.co.jp/index.php/documentation/ichiba-item-search
-
-## テスト
-`npm run check` で構文/ファイル配置とAPIの基本挙動をテストできます。
-
-## 実装範囲
-- 静的サイト表示、商品キーワード検索、API接続状態、楽天商品リンク表示
-- **未実装**: AI記事生成、SNS自動投稿、データベース、ランキング自動更新、定期投稿、自動収益保証
-- **未検証**: 実際の楽天API認証とCloudflare本番デプロイ（個別アカウント接続が必要）
+`npm run check` でテストします。
