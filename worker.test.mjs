@@ -1,44 +1,90 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import worker from '../worker.js';
+
 const assets = { fetch: async () => new Response('static-ok') };
-test('health endpoint', async () => { const r = await worker.fetch(new Request('https://x.test/api/health'), { ASSETS: assets }); assert.equal(r.status, 200); assert.equal((await r.json()).ok, true); });
-test('credentials missing returns 503', async () => { const r = await worker.fetch(new Request('https://x.test/api/search?keyword=abc'), { ASSETS: assets }); assert.equal(r.status, 503); });
-test('static asset fallback', async () => { const r = await worker.fetch(new Request('https://x.test/'), { ASSETS: assets }); assert.equal(await r.text(), 'static-ok'); });
-test('invalid keyword returns 400', async () => { const r = await worker.fetch(new Request('https://x.test/api/search?keyword='), { ASSETS: assets, RAKUTEN_APP_ID: 'id', RAKUTEN_ACCESS_KEY: 'key' }); assert.equal(r.status, 400); });
+const env = { ASSETS: assets, RAKUTEN_APP_ID: 'app-private', RAKUTEN_ACCESS_KEY: 'access-private', RAKUTEN_AFFILIATE_ID: 'affiliate-private' };
+const search = (url = 'https://site.test/api/search?keyword=' + encodeURIComponent('イヤホン'), e = env) => worker.fetch(new Request(url), e);
+const withFetch = async (mock, cb) => {
+  const previous = globalThis.fetch;
+  globalThis.fetch = mock;
+  try { return await cb(); } finally { globalThis.fetch = previous; }
+};
 
-
-test('registered Cloudflare secrets are passed to Rakuten API without leaking to browser', async () => {
-  const originalFetch = globalThis.fetch;
-  const env = { ASSETS: assets, RAKUTEN_APP_ID: 'app-private', RAKUTEN_ACCESS_KEY: 'access-private', RAKUTEN_AFFILIATE_ID: 'affiliate-test' };
-  let called = false;
-  globalThis.fetch = async (requestUrl, options) => {
-    called = true;
-    const u = new URL(requestUrl);
-    assert.equal(u.searchParams.get('applicationId'), env.RAKUTEN_APP_ID);
-    assert.equal(u.searchParams.get('affiliateId'), env.RAKUTEN_AFFILIATE_ID);
-    assert.equal(options.headers.accessKey, env.RAKUTEN_ACCESS_KEY);
-    assert.equal(u.searchParams.get('keyword'), 'イヤホン');
-    return Response.json({ Items: [{ Item: { itemName: 'テスト商品', itemPrice: 1200, affiliateUrl: 'https://example.test/aff', mediumImageUrls: [{ imageUrl: 'https://example.test/img.png' }] } }] });
-  };
-  try {
-    const res = await worker.fetch(new Request('https://x.test/api/search?keyword=' + encodeURIComponent('イヤホン')), env);
-    assert.equal(res.status, 200);
-    const payload = await res.json();
-    assert.equal(called, true);
-    assert.equal(payload.items[0].url, 'https://example.test/aff');
-    assert.ok(!JSON.stringify(payload).includes(env.RAKUTEN_ACCESS_KEY));
-    assert.ok(!JSON.stringify(payload).includes(env.RAKUTEN_APP_ID));
-  } finally { globalThis.fetch = originalFetch; }
+test('health checks presence without revealing secrets', async () => {
+  const r = await worker.fetch(new Request('https://site.test/api/health'), env);
+  const payload = await r.json();
+  assert.equal(r.status, 200);
+  assert.equal(payload.apiConfigured, true);
+  assert.equal(payload.release, 'v8');
+  assert.ok(!JSON.stringify(payload).includes('app-private'));
+  assert.ok(!JSON.stringify(payload).includes('access-private'));
 });
-
-test('affiliate link is not reported as configured without affiliate ID', async () => {
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => Response.json({ Items: [{ Item: { itemName: '商品', itemPrice: 100, itemUrl: 'https://example.test/item', affiliateUrl: 'https://example.test/affiliate' } }] });
-  try {
-    const res = await worker.fetch(new Request('https://x.test/api/search?keyword=abc'), { ASSETS: assets, RAKUTEN_APP_ID: 'app', RAKUTEN_ACCESS_KEY: 'access' });
-    const data = await res.json();
+test('missing keys returns 503', async () => {
+  assert.equal((await search(undefined, { ASSETS: assets })).status, 503);
+});
+test('static assets continue working', async () => {
+  const r = await worker.fetch(new Request('https://site.test/'), env);
+  assert.equal(await r.text(), 'static-ok');
+});
+test('empty and overly long keyword return 400', async () => {
+  assert.equal((await search('https://site.test/api/search?keyword=')).status, 400);
+  assert.equal((await search('https://site.test/api/search?keyword=' + 'あ'.repeat(50))).status, 400);
+});
+test('sends official test form parameters server side, uses affiliate URL', async () => {
+  await withFetch(async (uri, options) => {
+    const u = new URL(uri);
+    assert.equal(u.origin, 'https://openapi.rakuten.co.jp');
+    assert.equal(u.searchParams.get('applicationId'), env.RAKUTEN_APP_ID);
+    assert.equal(u.searchParams.get('accessKey'), env.RAKUTEN_ACCESS_KEY);
+    assert.equal(u.searchParams.get('affiliateId'), env.RAKUTEN_AFFILIATE_ID);
+    assert.equal(u.searchParams.get('keyword'), 'イヤホン');
+    assert.equal(options.headers.Accept, 'application/json');
+    return Response.json({ Items: [{ Item: { itemName: '商品', itemPrice: 1200, itemUrl: 'https://example.com/item', affiliateUrl: 'https://example.com/affiliate', mediumImageUrls: [{ imageUrl: 'https://example.com/img.jpg' }] } }] });
+  }, async () => {
+    const r = await search();
+    const data = await r.json();
+    assert.equal(r.status, 200);
+    assert.equal(data.items[0].url, 'https://example.com/affiliate');
+    assert.ok(!JSON.stringify(data).includes('access-private'));
+    assert.ok(!JSON.stringify(data).includes('app-private'));
+  });
+});
+test('403 returns specific diagnostic status without leaking provider errors or secrets', async () => {
+  await withFetch(async () => Response.json({ error: 'forbidden', error_description: 'access-private' }, { status: 403 }), async () => {
+    const r = await search();
+    const data = await r.json();
+    assert.equal(r.status, 502);
+    assert.equal(data.upstreamStatus, 403);
+    assert.equal(data.upstreamErrorCode, 'forbidden');
+    assert.ok(!JSON.stringify(data).includes('access-private'));
+  });
+});
+test('429 returns temporary 503 and Retry-After header', async () => {
+  await withFetch(async () => Response.json({ error: 'too_many_requests' }, { status: 429 }), async () => {
+    const r = await search();
+    assert.equal(r.status, 503);
+    assert.equal(r.headers.get('Retry-After'), '120');
+    assert.equal((await r.json()).upstreamStatus, 429);
+  });
+});
+test('quoted secrets are normalized', async () => {
+  await withFetch(async (uri) => {
+    assert.equal(new URL(uri).searchParams.get('accessKey'), 'keyvalue');
+    return Response.json({ Items: [] });
+  }, async () => {
+    const r = await search(undefined, { ...env, RAKUTEN_ACCESS_KEY: ' "keyvalue" ' });
+    assert.equal(r.status, 200);
+  });
+});
+test('no affiliate ID falls back to regular product URL', async () => {
+  await withFetch(async (uri) => {
+    assert.equal(new URL(uri).searchParams.has('affiliateId'), false);
+    return Response.json({ Items: [{ Item: { itemName: 'item', itemUrl: 'https://example.com/item', affiliateUrl: '' } }] });
+  }, async () => {
+    const r = await search(undefined, { ...env, RAKUTEN_AFFILIATE_ID: undefined });
+    const data = await r.json();
     assert.equal(data.affiliateConfigured, false);
-    assert.equal(data.items[0].url, 'https://example.test/item');
-  } finally { globalThis.fetch = originalFetch; }
+    assert.equal(data.items[0].url, 'https://example.com/item');
+  });
 });
