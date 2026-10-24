@@ -1,17 +1,13 @@
-// Cloudflare Workers entry point. Reuse the Pages-compatible API implementation
-// while serving ONLY ./public as static assets.
-import { onRequest as handleApi } from '../functions/api/[[path]].js';
-
+// Cloudflare Workers entrypoint. Static files are served using the ASSETS binding.
 export default {
-  async fetch(request, env, context) {
-    const pathname = new URL(request.url).pathname;
-    if (pathname.startsWith('/api/')) {
-      return handleApi({
-        request,
-        env,
-        waitUntil: context.waitUntil.bind(context)
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    if (url.pathname === '/api/health') {
+      return Response.json({ ok: true, service: 'rakuten-affiliate', mode: 'demo' }, {
+        headers: { 'cache-control': 'no-store' }
       });
     }
+    if (!env.ASSETS) return new Response('Static ASSETS binding is not configured', { status: 503 });
     return env.ASSETS.fetch(request);
   }
 };

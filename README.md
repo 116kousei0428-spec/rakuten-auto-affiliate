@@ -1,23 +1,17 @@
-# 楽天アフィリエイト — GitHub → Cloudflare Pages 対応版（再構築スターター）
+# Rakuten affiliate GitHub/Cloudflare correction v3
 
-**重要:** 以前の楽天計画の元ソースは復元できていません。この配布物は「GitHubに置いてCloudflare Pagesでビルド・公開できる最小構成」です。楽天API、D1、AI生成、SNS自動投稿など元計画の中核機能は含みません。
+This archive fixes the missing `src/worker.js` error by adding a real Workers entrypoint and `wrangler.jsonc` referencing it. The application is a demonstration shell, not the previous full affiliate system. API credentials, ranking, article generation, SNS publishing and D1 production integration are not implemented.
 
-## GitHubへのアップロード
-ZIPを展開して、中の**ファイル・フォルダすべて**をGitHubリポジトリのルートへアップロードします。ZIP自体をリポジトリにアップするだけでは動きません。
+## Cloudflare Workers connected to GitHub
 
-## Cloudflare Pages: GitHub連携設定
-- Workers & Pages → Create → Pages → Connect to Git → 対象リポジトリを選択
-- Framework preset: None
-- Production branch: main （GitHub側のブランチ名が違う場合は合わせる）
-- Build command: `npm run build`
-- Build output directory: `dist`
-- Root directory: `/`（リポジトリ直下なら）
-- Environment variables: 現段階では不要
+Use root directory `/`, build command `npm run build`, deploy command `npx wrangler deploy`. The `wrangler.jsonc` points to `src/worker.js` and static output `dist`.
 
-`npm run build` が `public` の内容を `dist` にコピーします。`functions/api/health.js` はCloudflare Pages Functionsとして公開されます。`node_modules`をアップロードしません。
+## Cloudflare Pages connected to GitHub
 
-## ローカル検証
-`npm run check` → `npm run build`
+Pages build command `npm run build`, output directory `dist`, root `/`. If the Cloudflare project is a Workers project, do not configure it as Pages; follow Workers settings above. The Pages Function in `functions/api/health.js` is for Pages only.
 
-## 現段階の注意
-本番サイト上で `/api/health` は応答しますが、楽天API・DB接続確認にはなりません。機密情報をGitHubにアップしないでください。
+## IMPORTANT when replacing existing GitHub repository files
+
+Remove obsolete `wrangler.toml`, duplicate Wrangler configs, and old Worker entrypoint settings if they conflict. GitHub upload of a ZIP does not automatically delete old files already in the repository. The error can recur if an older config/deployment setting wins.
+
+Locally: `npm run check` and `npm run build`.
