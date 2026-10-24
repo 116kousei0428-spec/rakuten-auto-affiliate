@@ -1,11 +1,10 @@
 {
   "name": "rakuten-affiliate-github-worker",
-  "version": "4.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/verify.mjs",
-    "check": "node scripts/verify.mjs",
-    "deploy": "npm run check && wrangler deploy"
+    "build": "node scripts/check.mjs",
+    "check": "node scripts/check.mjs && node --test tests/*.test.mjs",
+    "deploy": "npx wrangler deploy"
   }
 }

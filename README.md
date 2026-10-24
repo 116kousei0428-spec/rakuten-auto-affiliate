@@ -1,29 +1,29 @@
-# 楽天アフィリエイト GitHub → Cloudflare Workers（v4）
+# 楽天アフィリエイト GitHub → Cloudflare Workers v5
 
-このZIPはGitHub連携で `npx wrangler deploy` を実行する最小構成です。元の楽天全機能は復元していません。現在のサイトはデモ表示です。
+GitHub連携のCloudflare **Workers** 用プロジェクトです。`src/worker.js`は使用しません。エントリポイントはリポジトリ直下の`worker.js`です。
 
-## GitHubへの置き方（重要）
-ZIPを**解凍**し、以下の**中身**をリポジトリ最上位にアップロードします。ZIPそのものや親フォルダ `rakuten_github_worker_v4/` をアップロードしないでください。
+## アップロード方法
+ZIPを展開して**フォルダ自体ではなく、中身**（`worker.js`, `wrangler.jsonc`, `public/`, `package.json`など）をGitHubリポジトリの最上位に配置してください。既存の`wrangler.toml`, `wrangler.json`, 古い`wrangler.jsonc`や余分なサブディレクトリに注意。
 
-```
-repo/
-  wrangler.jsonc
-  package.json
-  src/worker.js
-  public/index.html
-  public/app.js
-  public/style.css
-  scripts/verify.mjs
-```
-
-古い `wrangler.toml`、`wrangler.json`、`dist/`、別の `package.json` 等が残っていると衝突・誤参照する場合があります。**空の新規リポジトリ**への配置が確実です。既存リポジトリに上書きする場合は古いファイルが残らないことを確認してください。
-
-## Cloudflare Workers GitHub連携設定
-- Root directory: `/`（リポジトリルート）
-- Build command: `npm run build`（任意：実際には構成検証のみ）
+## Cloudflare 設定
+- 接続方法: GitHub → Workers Builds
+- Root directory: リポジトリ直下（空欄または `/`）
+- Build command: `npm run build`（ビルド不要なら空欄でもよい）
 - Deploy command: `npx wrangler deploy`
+- リポジトリに `worker.js` と `wrangler.jsonc` が並ぶことを確認
 
-※Cloudflare Pagesの `dist` 出力指定を使う構成ではありません。Cloudflare Workersのリポジトリ連携を使用します。
+## 楽天API設定
+CloudflareのWorker設定の Variables and Secrets に以下を登録してください。
+- `RAKUTEN_APP_ID`: 楽天アプリID
+- `RAKUTEN_ACCESS_KEY`: 楽天APIアクセスキー（secret推奨）
+- `RAKUTEN_AFFILIATE_ID`: 楽天アフィリエイトID（任意。成果計測には必要）
 
-## ローカル検証
-`npm run check` と `npm run build`。実クラウドへのデプロイ成否は認証・Cloudflare設定・GitHub配置に依存します。
+楽天市場商品検索API 2026-07-01を利用。ブラウザに認証キーは露出しません。公式仕様: https://webservice.rakuten.co.jp/index.php/documentation/ichiba-item-search
+
+## テスト
+`npm run check` で構文/ファイル配置とAPIの基本挙動をテストできます。
+
+## 実装範囲
+- 静的サイト表示、商品キーワード検索、API接続状態、楽天商品リンク表示
+- **未実装**: AI記事生成、SNS自動投稿、データベース、ランキング自動更新、定期投稿、自動収益保証
+- **未検証**: 実際の楽天API認証とCloudflare本番デプロイ（個別アカウント接続が必要）
