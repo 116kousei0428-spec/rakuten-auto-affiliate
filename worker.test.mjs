@@ -16,7 +16,7 @@ test('health checks presence without revealing secrets', async () => {
   const payload = await r.json();
   assert.equal(r.status, 200);
   assert.equal(payload.apiConfigured, true);
-  assert.equal(payload.release, 'v8');
+  assert.equal(payload.release, 'v9');
   assert.ok(!JSON.stringify(payload).includes('app-private'));
   assert.ok(!JSON.stringify(payload).includes('access-private'));
 });
@@ -36,7 +36,10 @@ test('sends official test form parameters server side, uses affiliate URL', asyn
     const u = new URL(uri);
     assert.equal(u.origin, 'https://openapi.rakuten.co.jp');
     assert.equal(u.searchParams.get('applicationId'), env.RAKUTEN_APP_ID);
-    assert.equal(u.searchParams.get('accessKey'), env.RAKUTEN_ACCESS_KEY);
+    assert.equal(u.searchParams.has('accessKey'), false);
+    assert.equal(options.headers.accessKey, env.RAKUTEN_ACCESS_KEY);
+    assert.equal(options.headers.Referer, 'https://site.test/');
+    assert.equal(options.redirect, 'follow');
     assert.equal(u.searchParams.get('affiliateId'), env.RAKUTEN_AFFILIATE_ID);
     assert.equal(u.searchParams.get('keyword'), 'イヤホン');
     assert.equal(options.headers.Accept, 'application/json');
@@ -69,8 +72,9 @@ test('429 returns temporary 503 and Retry-After header', async () => {
   });
 });
 test('quoted secrets are normalized', async () => {
-  await withFetch(async (uri) => {
-    assert.equal(new URL(uri).searchParams.get('accessKey'), 'keyvalue');
+  await withFetch(async (uri, options) => {
+    assert.equal(new URL(uri).searchParams.has('accessKey'), false);
+    assert.equal(options.headers.accessKey, 'keyvalue');
     return Response.json({ Items: [] });
   }, async () => {
     const r = await search(undefined, { ...env, RAKUTEN_ACCESS_KEY: ' "keyvalue" ' });
@@ -87,4 +91,26 @@ test('no affiliate ID falls back to regular product URL', async () => {
     assert.equal(data.affiliateConfigured, false);
     assert.equal(data.items[0].url, 'https://example.com/item');
   });
+});
+
+test('transport TypeError is not disguised as invalid credentials', async () => {
+  await withFetch(async () => { throw new TypeError('secret is not safe for logs'); }, async () => {
+    const r = await search();
+    const data = await r.json();
+    assert.equal(r.status, 502);
+    assert.equal(data.errorCode, 'UPSTREAM_FETCH_REJECTED');
+    assert.equal(data.errorType, 'TypeError');
+    assert.ok(!JSON.stringify(data).includes('secret'));
+  });
+});
+test('timeout gets a separate diagnostic code', async () => {
+  await withFetch(async () => { const e = new Error('hidden'); e.name = 'TimeoutError'; throw e; }, async () => {
+    const data = await (await search()).json();
+    assert.equal(data.errorCode, 'UPSTREAM_TIMEOUT');
+  });
+});
+test('worker does not embed credentials in text assets', async () => {
+  const r = await worker.fetch(new Request('https://site.test/api/health'), env);
+  const text = await r.text();
+  assert.ok(!text.includes('access-private'));
 });

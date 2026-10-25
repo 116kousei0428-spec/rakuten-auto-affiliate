@@ -41,7 +41,7 @@ export default {
       apiConfigured: Boolean(asSecret(env.RAKUTEN_APP_ID) && asSecret(env.RAKUTEN_ACCESS_KEY)),
       affiliateConfigured: Boolean(asSecret(env.RAKUTEN_AFFILIATE_ID)),
       apiVersion: '2026-07-01',
-      release: 'v8'
+      release: 'v9'
     });
 
     if (url.pathname === '/api/search') {
@@ -55,19 +55,18 @@ export default {
       const pageInput = url.searchParams.get('page') || '1';
       const page = /^\d+$/.test(pageInput) ? Math.max(1, Math.min(100, Number(pageInput))) : 1;
 
-      // Mirror the successful Rakuten official API test form: applicationId and
-      // accessKey are both sent as API parameters. Rakuten docs also allow a header.
-      // This URL is used ONLY server-side and is never sent to the browser or logged.
+      // Keep the access key OUT of the URL, where infrastructure may log it.
+      // Rakuten's 2026-07-01 API supports accessKey as a request header.
       const params = new URLSearchParams({
-        format: 'json', applicationId, accessKey, keyword, hits: '12', page: String(page)
+        format: 'json', applicationId, keyword, hits: '12', page: String(page)
       });
       if (affiliateId) params.set('affiliateId', affiliateId);
 
       // Edge-local cache: avoid repeated requests (rate limits). A new versioned
       // cache namespace prevents previous releases' responses from being reused.
       const cache = cacheFor();
-      const searchCacheKey = new Request(`${url.origin}/api/__v8_result?keyword=${encodeURIComponent(keyword)}&page=${page}`);
-      const cooldownKey = new Request(`${url.origin}/api/__v8_cooldown`);
+      const searchCacheKey = new Request(`${url.origin}/api/__v9_result?keyword=${encodeURIComponent(keyword)}&page=${page}`);
+      const cooldownKey = new Request(`${url.origin}/api/__v9_cooldown`);
       try {
         if (cache) {
           const hit = await cache.match(searchCacheKey);
@@ -78,10 +77,27 @@ export default {
         let upstream;
         try {
           upstream = await fetch(`${API_URL}?${params}`, {
-            method: 'GET', headers: { Accept: 'application/json' }, redirect: 'error', signal: AbortSignal.timeout(12000)
+            method: 'GET',
+            headers: {
+              Accept: 'application/json',
+              accessKey,
+              // Rakuten may enforce the registered website; send our public origin.
+              Referer: `${url.origin}/`
+            },
+            // v8 rejected ALL 3xx responses as transport errors.
+            redirect: 'follow',
+            signal: AbortSignal.timeout(20000)
           });
-        } catch {
-          return json({ error: '楽天APIへの通信に失敗しました。ネットワーク接続を確認してください。' }, 502);
+        } catch (error) {
+          // Never log raw exception messages: they can contain URLs or credentials.
+          const kind = error instanceof Error ? error.name : 'Unknown';
+          const timeout = kind === 'TimeoutError' || kind === 'AbortError';
+          console.error('Rakuten API outbound request failed', { kind, timeout });
+          return json({
+            error: timeout ? '楽天APIへの通信が20秒でタイムアウトしました。' : '楽天APIへの送信処理でエラーが発生しました。',
+            errorCode: timeout ? 'UPSTREAM_TIMEOUT' : 'UPSTREAM_FETCH_REJECTED',
+            errorType: /^[A-Za-z]{1,30}$/.test(kind) ? kind : 'Unknown'
+          }, 502);
         }
 
         if (!upstream.ok) {
@@ -118,8 +134,10 @@ export default {
         };
         if (cache) await cache.put(searchCacheKey, cachedResponse(result, 600));
         return json(result);
-      } catch {
-        return json({ error: '検索処理中にエラーが発生しました。' }, 502);
+      } catch (error) {
+        const kind = error instanceof Error ? error.name : 'Unknown';
+        console.error('Rakuten search processing failed', { kind });
+        return json({ error: '検索処理中にエラーが発生しました。', errorCode: 'WORKER_PROCESSING_ERROR' }, 502);
       }
     }
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);

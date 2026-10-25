@@ -11,8 +11,8 @@ form.addEventListener('submit', async (e) => {
   if (!keyword) return setStatus('キーワードを入力してください。');
   try {
     const response = await fetch(`/api/search?keyword=${encodeURIComponent(keyword)}`);
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || '検索に失敗しました。');
+    const data = await response.json().catch(() => ({ error: `API応答を読み取れません（HTTP ${response.status}）`, errorCode: 'INVALID_API_RESPONSE' }));
+    if (!response.ok) throw new Error(`${data.error || '検索に失敗しました。'}${data.errorCode ? ' [診断: ' + data.errorCode + (data.errorType ? '/' + data.errorType : '') + ']' : ''}`);
     setStatus(`${data.count}件取得${data.affiliateConfigured ? '' : '（アフィリエイトID未設定）'}`);
     for (const item of data.items) {
       const article = document.createElement('article'); article.className = 'item';
@@ -24,5 +24,5 @@ form.addEventListener('submit', async (e) => {
       const href = safe(item.url); if (href) { const link = document.createElement('a'); link.href = href; link.target = '_blank'; link.rel = 'noopener noreferrer sponsored'; link.textContent = '楽天市場で見る'; article.append(link); }
       results.append(article);
     }
-  } catch (error) { setStatus(error.message); }
+  } catch (error) { setStatus(error instanceof Error ? error.message : '通信が失敗しました（詳細不明）'); }
 });
