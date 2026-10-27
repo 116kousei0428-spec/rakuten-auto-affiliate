@@ -1,4 +1,4 @@
-// Rakuten Ichiba Item Search API (2026-07-01) – GitHub → Cloudflare Workers
+// Rakuten Ichiba Item Search API (2026-07-01) – GitHub → Cloudflare Workers v10
 // Secrets are read only on the Worker. They must never be embedded in public assets.
 const API_URL = 'https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260701';
 const json = (data, status = 200, headers = {}) => Response.json(data, {
@@ -15,10 +15,32 @@ const cacheFor = () => (typeof caches !== 'undefined' && caches.default ? caches
 const cachedResponse = (data, ttl) => Response.json(data, {
   headers: { 'Cache-Control': `public, max-age=${ttl}`, 'X-Content-Type-Options': 'nosniff' }
 });
-const safeErrorCode = (data) => {
-  const code = data && typeof data.error === 'string' ? data.error : '';
-  // Do not reflect arbitrary provider output or credentials to public visitors.
-  return /^[a-z][a-z0-9_-]{0,59}$/.test(code) ? code : null;
+// The Rakuten gateway may use { errors: {errorCode:403, errorMessage:"..."} }
+// rather than the documented {error:"..."}. Expose only whitelisted identifiers.
+const safeUpstreamCode = (body) => {
+  if (!body || typeof body !== 'object') return null;
+  const raw = [body?.errors?.errorMessage, body?.errorMessage, body?.error,
+    body?.errors?.error, body?.errors?.errorCode]
+    .find(v => typeof v === 'string' && v.trim());
+  if (!raw) return null;
+  const candidate = raw.trim().replace(/^403:\s*/, '');
+  const known = [
+    'HTTP_REFERRER_NOT_ALLOWED', 'REQUEST_CONTEXT_BODY_HTTP_REFERRER_MISSING',
+    'HTTP_REFERRER_MISSING', 'REQUESTED_SCOPES_NOT_ALLOWED',
+    'INVALID_ACCESS_KEY', 'INVALID_APPLICATION_ID',
+    'TOO_MANY_REQUESTS', 'WRONG_PARAMETER'
+  ];
+  const normalized = candidate.toUpperCase().replace(/[ -]+/g, '_');
+  for (const token of known) if (normalized.includes(token)) return token;
+  if (/^[a-z][a-z0-9_-]{0,59}$/.test(candidate)) return candidate;
+  return null;
+};
+const upstreamHint = (code) => {
+  if (!code) return 'RAKUTEN_403_UNCLASSIFIED';
+  if (code.includes('REFERRER')) return 'CHECK_REGISTERED_WEBSITE_AND_ORIGIN';
+  if (code.includes('SCOPES')) return 'CHECK_ICHIBA_API_SCOPE';
+  if (code.includes('ACCESS_KEY') || code.includes('APPLICATION_ID')) return 'CHECK_APP_ID_ACCESS_KEY_PAIR';
+  return 'CHECK_RAKUTEN_APP_SETTINGS';
 };
 const safeItem = (entry) => {
   const item = entry?.Item ?? entry ?? {};
@@ -41,7 +63,7 @@ export default {
       apiConfigured: Boolean(asSecret(env.RAKUTEN_APP_ID) && asSecret(env.RAKUTEN_ACCESS_KEY)),
       affiliateConfigured: Boolean(asSecret(env.RAKUTEN_AFFILIATE_ID)),
       apiVersion: '2026-07-01',
-      release: 'v9'
+      release: 'v10'
     });
 
     if (url.pathname === '/api/search') {
@@ -81,7 +103,9 @@ export default {
             headers: {
               Accept: 'application/json',
               accessKey,
-              // Rakuten may enforce the registered website; send our public origin.
+              // Rakuten's 2026 gateway may validate Origin in addition to Referer.
+              // The origin MUST correspond to the app's allowed websites entry.
+              Origin: url.origin,
               Referer: `${url.origin}/`
             },
             // v8 rejected ALL 3xx responses as transport errors.
@@ -103,19 +127,25 @@ export default {
         if (!upstream.ok) {
           if (upstream.status === 429 && cache) await cache.put(cooldownKey, cachedResponse({ limited: true }, 120));
           let code = null;
-          try { code = safeErrorCode(await upstream.json()); } catch { /* not JSON */ }
+          let responseFormat = 'non_json';
+          try {
+            const raw = await upstream.text();
+            const payload = JSON.parse(raw);
+            responseFormat = 'json';
+            code = safeUpstreamCode(payload);
+          } catch { /* Not valid JSON: do not print provider HTML or credentials */ }
           if (upstream.status === 403) return json({
             error: '楽天APIがHTTP 403でアクセスを拒否しました。楽天の許可ウェブサイト、アプリIDとアクセスキーの組み合わせ、API利用権限を確認してください。',
-            upstreamStatus: 403, upstreamErrorCode: code
+            upstreamStatus: 403, upstreamErrorCode: code, diagnosticHint: upstreamHint(code), responseFormat
           }, 502);
           if (upstream.status === 429) return json({
             error: '楽天APIがHTTP 429（利用制限）を返しました。再試行を繰り返さないでください。',
-            upstreamStatus: 429, upstreamErrorCode: code
+            upstreamStatus: 429, upstreamErrorCode: code, responseFormat
           }, 503, { 'Retry-After': '120' });
           return json({
             error: `楽天APIがHTTP ${upstream.status}を返しました。`,
             upstreamStatus: upstream.status,
-            upstreamErrorCode: code
+            upstreamErrorCode: code, responseFormat
           }, 502);
         }
 
@@ -124,7 +154,7 @@ export default {
           return json({ error: '楽天APIの応答がJSONではありませんでした。' }, 502);
         }
         if (body?.error) return json({
-          error: '楽天APIからエラーが返されました。', upstreamErrorCode: safeErrorCode(body)
+          error: '楽天APIからエラーが返されました。', upstreamErrorCode: safeUpstreamCode(body)
         }, 502);
         const entries = Array.isArray(body?.Items) ? body.Items : [];
         const result = {

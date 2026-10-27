@@ -16,7 +16,7 @@ test('health checks presence without revealing secrets', async () => {
   const payload = await r.json();
   assert.equal(r.status, 200);
   assert.equal(payload.apiConfigured, true);
-  assert.equal(payload.release, 'v9');
+  assert.equal(payload.release, 'v10');
   assert.ok(!JSON.stringify(payload).includes('app-private'));
   assert.ok(!JSON.stringify(payload).includes('access-private'));
 });
@@ -39,6 +39,7 @@ test('sends official test form parameters server side, uses affiliate URL', asyn
     assert.equal(u.searchParams.has('accessKey'), false);
     assert.equal(options.headers.accessKey, env.RAKUTEN_ACCESS_KEY);
     assert.equal(options.headers.Referer, 'https://site.test/');
+    assert.equal(options.headers.Origin, 'https://site.test');
     assert.equal(options.redirect, 'follow');
     assert.equal(u.searchParams.get('affiliateId'), env.RAKUTEN_AFFILIATE_ID);
     assert.equal(u.searchParams.get('keyword'), 'イヤホン');
@@ -61,6 +62,29 @@ test('403 returns specific diagnostic status without leaking provider errors or 
     assert.equal(data.upstreamStatus, 403);
     assert.equal(data.upstreamErrorCode, 'forbidden');
     assert.ok(!JSON.stringify(data).includes('access-private'));
+  });
+});
+test('new Rakuten 403 nested gateway error returns actionable code', async () => {
+  await withFetch(async () => Response.json({ errors: { errorCode: 403, errorMessage: 'REQUEST_CONTEXT_BODY_HTTP_REFERRER_MISSING' } }, { status: 403 }), async () => {
+    const data = await (await search()).json();
+    assert.equal(data.upstreamStatus, 403);
+    assert.equal(data.upstreamErrorCode, 'REQUEST_CONTEXT_BODY_HTTP_REFERRER_MISSING');
+    assert.equal(data.diagnosticHint, 'CHECK_REGISTERED_WEBSITE_AND_ORIGIN');
+    assert.equal(data.responseFormat, 'json');
+  });
+});
+test('403 HTML never exposes HTML content, keys, or fake codes', async () => {
+  await withFetch(async () => new Response('<html>access-private</html>', { status: 403, headers: { 'Content-Type': 'text/html' } }), async () => {
+    const data = await (await search()).json();
+    assert.equal(data.upstreamErrorCode, null);
+    assert.equal(data.responseFormat, 'non_json');
+    assert.ok(!JSON.stringify(data).includes('access-private'));
+  });
+});
+test('403 scope denied is recognized from Rakuten errorMessage', async () => {
+  await withFetch(async () => Response.json({ errors: { errorCode: 403, errorMessage: 'REQUESTED_SCOPES_NOT_ALLOWED' } }, { status: 403 }), async () => {
+    const data = await (await search()).json();
+    assert.equal(data.diagnosticHint, 'CHECK_ICHIBA_API_SCOPE');
   });
 });
 test('429 returns temporary 503 and Retry-After header', async () => {

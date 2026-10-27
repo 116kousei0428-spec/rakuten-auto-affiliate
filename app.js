@@ -12,7 +12,7 @@ form.addEventListener('submit', async (e) => {
   try {
     const response = await fetch(`/api/search?keyword=${encodeURIComponent(keyword)}`);
     const data = await response.json().catch(() => ({ error: `API応答を読み取れません（HTTP ${response.status}）`, errorCode: 'INVALID_API_RESPONSE' }));
-    if (!response.ok) throw new Error(`${data.error || '検索に失敗しました。'}${data.errorCode ? ' [診断: ' + data.errorCode + (data.errorType ? '/' + data.errorType : '') + ']' : ''}`);
+    if (!response.ok) throw new Error(`${data.error || '検索に失敗しました。'}${data.errorCode ? ' [診断: ' + data.errorCode + (data.errorType ? '/' + data.errorType : '') + ']' : ''}${data.upstreamErrorCode ? ' [楽天側: ' + data.upstreamErrorCode + ']' : ''}`);
     setStatus(`${data.count}件取得${data.affiliateConfigured ? '' : '（アフィリエイトID未設定）'}`);
     for (const item of data.items) {
       const article = document.createElement('article'); article.className = 'item';
