@@ -16,7 +16,7 @@ test('health checks presence without revealing secrets', async () => {
   const payload = await r.json();
   assert.equal(r.status, 200);
   assert.equal(payload.apiConfigured, true);
-  assert.equal(payload.release, 'v10');
+  assert.equal(payload.release, 'v11');
   assert.ok(!JSON.stringify(payload).includes('app-private'));
   assert.ok(!JSON.stringify(payload).includes('access-private'));
 });
@@ -137,4 +137,84 @@ test('worker does not embed credentials in text assets', async () => {
   const r = await worker.fetch(new Request('https://site.test/api/health'), env);
   const text = await r.text();
   assert.ok(!text.includes('access-private'));
+});
+
+const adminEnv = {
+  ...env,
+  AI_ADMIN_TOKEN: 'this-is-a-long-random-test-only-token',
+  AI: {
+    run: async () => ({ response: '## 商品の概要\nこの商品は楽天市場で販売されています。商品ページの記載を確認してください。\n\n## 注目したいポイント\n購入前に商品の特徴を確認しましょう。\n\n## 購入前に確認したいこと\n価格や在庫、送料などは販売ページで再確認してください。\n\n## まとめ\n紹介情報は参考として扱ってください。' })
+  }
+};
+const demoItem = {
+  name: '楽天テストイヤホン', price: 4500, shop: '楽天の店', code: 'shop:001',
+  caption: '商品説明によるとワイヤレス接続に対応。',
+  url: 'https://item.rakuten.co.jp/shop/001/'
+};
+const articleRequest = (data = { item: demoItem }, token = adminEnv.AI_ADMIN_TOKEN, origin = 'https://site.test') => new Request('https://site.test/api/articles/generate', {
+  method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token, 'Origin': origin },
+  body: JSON.stringify(data)
+});
+test('AI status reports bindings only, does not expose secrets', async () => {
+  const body = await (await worker.fetch(new Request('https://site.test/api/health'), adminEnv)).json();
+  assert.equal(body.aiConfigured, true);
+  assert.equal(body.aiAdminConfigured, true);
+  assert.ok(!JSON.stringify(body).includes(adminEnv.AI_ADMIN_TOKEN));
+});
+test('AI endpoint requires POST', async () => {
+  const r = await worker.fetch(new Request('https://site.test/api/articles/generate'), adminEnv);
+  assert.equal(r.status, 405);
+});
+test('AI endpoint is disabled without admin secret', async () => {
+  const r = await worker.fetch(articleRequest(), { ...adminEnv, AI_ADMIN_TOKEN: undefined });
+  assert.equal(r.status, 503);
+  assert.equal((await r.json()).errorCode, 'ADMIN_NOT_CONFIGURED');
+});
+test('AI endpoint rejects wrong token without inference', async () => {
+  let called = false;
+  const r = await worker.fetch(articleRequest({ item: demoItem }, 'wrong-token'), { ...adminEnv, AI: { run: async () => { called = true; } } });
+  assert.equal(r.status, 401);
+  assert.equal(called, false);
+});
+test('AI endpoint rejects cross origin even with valid admin token', async () => {
+  const r = await worker.fetch(articleRequest({ item: demoItem }, adminEnv.AI_ADMIN_TOKEN, 'https://not-site.test'), adminEnv);
+  assert.equal(r.status, 403);
+});
+test('AI requires binding', async () => {
+  const r = await worker.fetch(articleRequest(), { ...adminEnv, AI: undefined });
+  assert.equal(r.status, 503);
+  assert.equal((await r.json()).errorCode, 'AI_BINDING_MISSING');
+});
+test('AI refuses non-Rakuten product URL before calling AI', async () => {
+  let called = false;
+  const r = await worker.fetch(articleRequest({ item: { ...demoItem, url: 'https://not-rakuten.example/item' } }), { ...adminEnv, AI: { run: async () => { called = true; } } });
+  assert.equal(r.status, 400);
+  assert.equal(called, false);
+});
+test('AI returns Japanese affiliate article draft with disclosure and trusted link', async () => {
+  let calls = 0;
+  const e = { ...adminEnv, AI: { run: async (model, parameters) => {
+    calls++;
+    assert.equal(model, '@cf/google/gemma-4-26b-a4b-it');
+    assert.equal(parameters.messages[0].role, 'system');
+    assert.match(parameters.messages[1].content, /楽天テストイヤホン/);
+    assert.ok(!JSON.stringify(parameters).includes(adminEnv.AI_ADMIN_TOKEN));
+    return { response: '## 商品の概要\nこれは提供された商品情報に基づく紹介文です。購入の前に販売ページで詳細と最新情報を確認してください。\n\n## まとめ\nご自身の用途に合うか確認することが大切です。' };
+  } } };
+  const r = await worker.fetch(articleRequest(), e);
+  assert.equal(r.status, 200);
+  const payload = await r.json();
+  assert.equal(calls, 1);
+  assert.equal(payload.publishStatus, 'draft');
+  assert.match(payload.markdown, /アフィリエイト広告が含まれます/);
+  assert.match(payload.markdown, /https:\/\/item\.rakuten\.co\.jp\/shop\/001\//);
+  assert.match(payload.markdown, /4,500円/);
+  assert.ok(!JSON.stringify(payload).includes(adminEnv.AI_ADMIN_TOKEN));
+});
+test('AI handles different response schema and empty text explicitly', async () => {
+  const good = { ...adminEnv, AI: { run: async () => ({ choices: [{ message: { content: '## 商品の概要\n商品情報をもとに記事を生成しました。購入前に価格、在庫、送料、仕様を確認しましょう。記事の記述を確認してください。' } }] }) } };
+  assert.equal((await worker.fetch(articleRequest(), good)).status, 200);
+  const empty = { ...adminEnv, AI: { run: async () => ({ response: '' }) } };
+  const r = await worker.fetch(articleRequest(), empty);
+  assert.equal((await r.json()).errorCode, 'AI_EMPTY_OUTPUT');
 });

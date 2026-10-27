@@ -6,4 +6,7 @@ assert.equal(config.main, './worker.js');
 assert(existsSync(config.main), 'Worker entrypoint missing');
 assert(existsSync(`${config.assets.directory}/index.html`), 'Static index missing');
 assert.deepEqual(config.assets.run_worker_first, ['/api/*']);
+assert.equal(config.ai.binding, 'AI', 'Workers AI binding missing');
+assert(existsSync(`${config.assets.directory}/app.js`), 'Front-end JavaScript missing');
+assert(existsSync(`${config.assets.directory}/style.css`), 'Stylesheet missing');
 console.log('PASS: Worker name/entry point/API route/assets match GitHub layout');
