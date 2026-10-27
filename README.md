@@ -1,47 +1,39 @@
-# 楽天アフィリエイト v12 — UIの反映不一致を修正
+# 楽天アフィリエイト v13 — D1記事保存
 
-## 発生していた問題
+GitHub → Cloudflare Workers（デプロイコマンド `npx wrangler deploy`）対応。v12の商品検索・AI記事生成を残し、D1の記事保存・一覧・編集・削除を追加。**記事公開とSNS投稿は実装しません**。
 
-`/api/health` は v11 だったのに、公開トップページは古い「楽天商品検索」だけの画面で、AI記事ボタンが表示されませんでした。
-元のZIP内には機能がありましたが、本番に公開された静的アセットが古い状態でした（正確な原因はGitHub側のアップロード状態を未確認）。
+## 設定済みのD1
 
-## 今回の対策
+- DB名: `rakuten-affiliate-db`
+- Binding: `DB` (`env.DB`)
+- DB ID: `81926891-4dd8-4cc2-b966-e530d2912452`
+- `wrangler.jsonc` に設定済み。パスワードではありません。
 
-- `wrangler.jsonc` の `assets.run_worker_first` を **true** に設定。
-- トップ `/` と `/index.html` は Worker 本体から v12の画面（HTML/JS/CSS込み）を返す。
-- トップHTMLは `Cache-Control: no-store`、`X-Rakuten-UI-Version: v12`。
-- `public/index.html` にも同じ機能を入れ、静的ファイルの見た目を揃える。
-- 楽天商品検索、生成API `/api/articles/generate`、AI認証はv11を維持。
-- `/api/health` の `release` を `v12` に変更。
+## GitHubへの反映
 
-## GitHub更新方法
+ZIPを解凍し、**フォルダを1階層増やさず**GitHubの既存リポジトリ直下へアップロード。
+以前の同名ファイルを上書きする。GitHub側に残る旧 `src/worker.js` を参照しないよう、`wrangler.jsonc` はこの版に置き換える。
 
-ZIPを解凍し、**リポジトリのルートに中身をアップロード**する。特に `worker.js` と `wrangler.jsonc` を必ず上書き。ファイル構造：
+変更不要：`RAKUTEN_APP_ID`, `RAKUTEN_ACCESS_KEY`, `RAKUTEN_AFFILIATE_ID`, `AI_ADMIN_TOKEN` (Cloudflare Secret)
+デプロイコマンドは `npx wrangler deploy` のまま。
 
-```
-worker.js
-wrangler.jsonc
-package.json
-public/index.html
-public/app.js
-public/style.css
-scripts/check.mjs
-tests/worker.test.mjs
-README.md
-```
+**D1の初期テーブルは、管理者が初めて「D1一覧を読み込む」か「D1に保存・更新」を実行した時点で自動作成します。** 追加のCLI操作は不要です。オプションで `migrations/0001_article_drafts.sql` を使って手動作成もできます。ただし、自動作成と両方行う必要はありません。
 
-**Cloudflareのデプロイコマンドは `npx wrangler deploy` から変更しない。**
-既存の `RAKUTEN_APP_ID`, `RAKUTEN_ACCESS_KEY`, `RAKUTEN_AFFILIATE_ID`, `AI_ADMIN_TOKEN` のSecretは再登録不要。
+## 使い方
 
-## 公開確認
+1. デプロイ後に `/api/health` の `release: v13` と `dbConfigured: true` を確認。
+2. サイトで管理者キーを入力し、「D1一覧を読み込む」を押す。初回は空の一覧が表示され、テーブルが作成される。
+3. 検索→AI記事生成→内容確認→「D1に保存・更新」を押す。
+4. 他端末からも同じ管理者キーでD1一覧を開いて編集できる。
+5. 旧版のブラウザ保存記事は下部から開いてD1に手動移行できる（自動では移行しない）。
 
-1. `https://rakuten-auto-affiliate.116kousei0428.workers.dev/api/health` で `release: v12` を確認。
-2. サイトのトップで `UI v12 / AI記事機能` と `② AI記事の下書きを作る` が表示される。
-3. 商品検索後、各商品に `AI記事を作成` ボタンが表示される。
-4. キーを入力して押す。記事生成の成否は Workers AI の実通信で確認が必要。
+## 注意事項
 
-## 確認済み範囲
+- **AI生成とD1の一覧・編集・保存・削除のすべてが管理者キー必須**。未認証の訪問者は閲覧できない。
+- 旧ブラウザ保存分は消さない。D1を作っただけでは自動同期されない。
+- D1に保存してもサイト公開・SNS投稿は行わない。
+- 手動削除はDB側で削除し、古いブラウザ保存分には影響しない。
+- Cloudflareの本番環境接続は未検証。ローカルモックでAPI試験。
+- `migrations/0001_article_drafts.sql` は将来の移行管理用に同梱。
 
-`npm run check` で構成とモックテストを確認。Cloudflare実環境へのデプロイおよび本番AI推論は未実施。
-
-公式仕様: https://developers.cloudflare.com/workers/static-assets/binding/
+公式: https://developers.cloudflare.com/workers/wrangler/configuration/#d1-databases

@@ -1,10 +1,10 @@
-<!-- Rakuten AI UI v12, served from Worker to prevent stale public/index.html -->
+<!-- Rakuten AI UI v13, served from Worker to prevent stale public/index.html -->
 <!doctype html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>楽天商品検索・AI記事下書き｜v12</title>
+<title>楽天商品検索・AI記事下書き｜v13</title>
 <style>:root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#182134;background:#f4f6fa}
 *{box-sizing:border-box}main{max-width:1080px;margin:30px auto;padding:0 20px}header{margin-bottom:24px}
 h1{font-size:27px;margin:0 0 8px}h2{font-size:18px;margin:0 0 14px}p{line-height:1.65}form{display:flex;gap:10px}
@@ -25,7 +25,7 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
 </style>
 </head>
 <body><main>
-  <header><h1>楽天商品検索 ＋ AI記事作成</h1><p class="ui-version">UI v12 / AI記事機能</p><p>楽天の商品データから、紹介記事の下書きを生成します。公開前に内容を確認してください。</p></header>
+  <header><h1>楽天商品検索 ＋ AI記事作成</h1><p class="ui-version">UI v13 / AI記事＋D1保存</p><p>楽天の商品データから、紹介記事の下書きを生成します。公開前に内容を確認してください。</p></header>
   <section class="panel">
     <h2>① 楽天の商品を検索</h2>
     <form id="search-form">
@@ -51,14 +51,22 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
     <h2>③ 記事の下書きを確認・編集</h2>
     <p class="help" id="draft-meta"></p>
     <textarea id="draft-text" rows="19" spellcheck="true" aria-label="AI記事の下書き"></textarea>
-    <div class="actions"><button id="save-draft" type="button">下書きを保存</button><button id="copy-draft" type="button" class="secondary">コピー</button><button id="download-draft" type="button" class="secondary">Markdownを保存</button></div>
+    <div class="actions"><button id="save-draft" type="button">D1に保存・更新</button><button id="save-local-draft" type="button" class="secondary">この端末にも保存</button><button id="copy-draft" type="button" class="secondary">コピー</button><button id="download-draft" type="button" class="secondary">Markdownを保存</button></div>
     <p id="draft-status" role="status"></p>
   </section>
   <section class="panel">
-    <h2>保存した下書き（このブラウザのみ）</h2>
+    <h2>④ D1に保存された記事（別端末からも閲覧・編集可能）</h2>
+    <p class="help">管理者キーを入力して「D1一覧を読み込む」を押してください。自動公開はしません。</p>
+    <div class="actions"><button id="load-db-drafts" type="button">D1一覧を読み込む</button></div>
+    <p id="db-status" role="status"></p>
+    <div id="db-list" class="draft-list"></div>
+  </section>
+  <section class="panel">
+    <h2>このブラウザに残っている旧版下書き</h2>
+    <p class="help">旧版の下書きは削除せず残しています。「開く」→「D1に保存・更新」で移行できます。</p>
     <div id="draft-list" class="draft-list"></div>
   </section>
-  <footer>※アフィリエイト広告を含む記事の下書き作成ツールです。価格や仕様は楽天市場の商品ページで再確認してください。下書きは公開されません。</footer>
+  <footer>※アフィリエイト広告を含む記事の下書き作成ツールです。価格や仕様は楽天市場の商品ページで再確認してください。下書きは公開されません。DBの内容は管理者キーがないと閲覧できません。</footer>
 </main><script>const $ = (selector) => document.querySelector(selector);
 const form = $('#search-form');
 const status = $('#status');
@@ -69,6 +77,15 @@ const draftText = $('#draft-text');
 const draftMeta = $('#draft-meta');
 const draftStatus = $('#draft-status');
 const draftList = $('#draft-list');
+const dbList = $('#db-list');
+const dbStatus = $('#db-status');
+const adminHeaders = () => ({ 'X-Admin-Token': $('#admin-token').value.trim() });
+const requireToken = () => {
+  if ($('#admin-token').value.trim()) return true;
+  dbStatus.textContent = '管理者キーを入力してください。';
+  $('#admin-token').focus();
+  return false;
+};
 const yen = (n) => typeof n === 'number' ? `${n.toLocaleString('ja-JP')}円` : '価格未取得';
 const safe = (value) => { try { const u = new URL(value); return u.protocol === 'https:' ? u.href : ''; } catch { return ''; } };
 const setStatus = (message) => { status.textContent = message; };
@@ -87,9 +104,9 @@ const storeDrafts = (entries) => {
   catch { return false; }
 };
 const openDraft = (draft) => {
-  currentDraft = draft;
+  currentDraft = { ...draft };
   draftText.value = draft.markdown;
-  draftMeta.textContent = `${draft.title || '無題の下書き'} ／ ${draft.generatedAt ? new Date(draft.generatedAt).toLocaleString('ja-JP') : ''}`;
+  draftMeta.textContent = `${draft.title || '無題の下書き'} ／ ${(draft.updatedAt || draft.generatedAt) ? new Date(draft.updatedAt || draft.generatedAt).toLocaleString('ja-JP') : ''}`;
   editor.hidden = false;
   draftStatus.textContent = '公開前に文章・価格・リンクを確認してください。';
   editor.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -108,6 +125,51 @@ const renderSavedDrafts = () => {
     line.append(label, open, remove); draftList.append(line);
   }
 };
+
+const apiRequest = async (url, options = {}) => {
+  const response = await fetch(url, {
+    ...options,
+    headers: { ...adminHeaders(), ...(options.headers || {}) }
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+  return data;
+};
+const loadDbDrafts = async () => {
+  if (!requireToken()) return;
+  dbStatus.textContent = 'D1の記事一覧を取得中…';
+  try {
+    const data = await apiRequest('/api/drafts');
+    dbList.replaceChildren();
+    if (!data.drafts.length) {
+      const p = document.createElement('p'); p.className = 'help'; p.textContent = 'D1にはまだ記事がありません。'; dbList.append(p);
+    }
+    for (const entry of data.drafts) {
+      const line = document.createElement('div'); line.className = 'draft-row';
+      const label = document.createElement('span'); label.textContent = `${entry.title} ／ ${entry.updatedAt.slice(0, 10)}`;
+      const open = document.createElement('button'); open.type = 'button'; open.className = 'secondary small'; open.textContent = '開く・編集';
+      open.addEventListener('click', async () => {
+        try {
+          const data = await apiRequest(`/api/drafts/${encodeURIComponent(entry.id)}`);
+          openDraft({ ...data.draft, savedToDb: true });
+        } catch (error) { dbStatus.textContent = error.message || '記事の取得に失敗しました。'; }
+      });
+      const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'secondary small'; remove.textContent = '削除';
+      remove.addEventListener('click', async () => {
+        if (!confirm(`「${entry.title}」をD1から削除しますか？`)) return;
+        try {
+          await apiRequest(`/api/drafts/${encodeURIComponent(entry.id)}`, { method: 'DELETE' });
+          if (currentDraft?.id === entry.id) { currentDraft = null; editor.hidden = true; }
+          await loadDbDrafts();
+        } catch (error) { dbStatus.textContent = error.message || '削除に失敗しました。'; }
+      });
+      line.append(label, open, remove); dbList.append(line);
+    }
+    dbStatus.textContent = `${data.drafts.length}件をD1から取得しました。`;
+  } catch (error) { dbStatus.textContent = error.message || 'D1への接続に失敗しました。'; }
+};
+$('#load-db-drafts').addEventListener('click', loadDbDrafts);
+
 const generateArticle = async (item, button) => {
   if (aiBusy) return;
   const token = $('#admin-token').value.trim();
@@ -165,12 +227,31 @@ form.addEventListener('submit', async (e) => {
   } catch (error) { setStatus(error instanceof Error ? error.message : '検索に失敗しました。'); }
 });
 
-$('#save-draft').addEventListener('click', () => {
+$('#save-draft').addEventListener('click', async () => {
+  if (!currentDraft) return;
+  if (!requireToken()) { draftStatus.textContent = 'D1保存には管理者キーが必要です。'; return; }
+  const button = $('#save-draft'); button.disabled = true;
+  draftStatus.textContent = 'D1に保存中…';
+  try {
+    const draft = { ...currentDraft, markdown: draftText.value };
+    const existing = Boolean(currentDraft.savedToDb);
+    const data = await apiRequest(existing ? `/api/drafts/${encodeURIComponent(draft.id)}` : '/api/drafts', {
+      method: existing ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: draft.id, title: draft.title, markdown: draft.markdown })
+    });
+    currentDraft = { ...data.draft, savedToDb: true };
+    draftStatus.textContent = 'D1に保存しました。別端末からも管理者キーで閲覧できます。';
+    await loadDbDrafts();
+  } catch (error) { draftStatus.textContent = error.message || 'D1への保存に失敗しました。'; }
+  finally { button.disabled = false; }
+});
+$('#save-local-draft').addEventListener('click', () => {
   if (!currentDraft) return;
   currentDraft = { ...currentDraft, markdown: draftText.value };
   const drafts = storedDrafts().filter(e => e.id !== currentDraft.id);
   drafts.unshift(currentDraft);
-  draftStatus.textContent = storeDrafts(drafts) ? 'このブラウザに保存しました。' : '保存できませんでした。ブラウザの容量やプライベートモードを確認してください。';
+  draftStatus.textContent = storeDrafts(drafts) ? 'この端末に保存しました。' : 'この端末には保存できませんでした。';
   renderSavedDrafts();
 });
 $('#copy-draft').addEventListener('click', async () => {
