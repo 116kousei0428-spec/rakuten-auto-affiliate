@@ -1,10 +1,10 @@
-<!-- Rakuten AI UI v13, served from Worker to prevent stale public/index.html -->
+<!-- Rakuten AI UI v14, served from Worker to prevent stale public/index.html -->
 <!doctype html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>楽天商品検索・AI記事下書き｜v13</title>
+<title>楽天商品検索・AI記事下書き｜v14</title>
 <style>:root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#182134;background:#f4f6fa}
 *{box-sizing:border-box}main{max-width:1080px;margin:30px auto;padding:0 20px}header{margin-bottom:24px}
 h1{font-size:27px;margin:0 0 8px}h2{font-size:18px;margin:0 0 14px}p{line-height:1.65}form{display:flex;gap:10px}
@@ -20,12 +20,12 @@ button:hover:not(:disabled){filter:brightness(.95)}button:disabled{opacity:.55;c
 .shop{color:#697484;font-size:13px}.item a{margin-top:auto;background:#eaf0ff;color:#2345a4;border-radius:8px;text-decoration:none;text-align:center;padding:10px;font-size:14px}
 .item .generate{font-weight:700}.secondary{background:#e9edf5;color:#25324c}.small{padding:7px 11px;font-size:13px}
 #draft-text{display:block;width:100%;line-height:1.7;resize:vertical;min-height:300px}
-.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.draft-row{display:flex;align-items:center;gap:8px;padding:11px 0;border-bottom:1px solid #e6e9f0}.draft-row span{flex:1;font-size:14px;overflow-wrap:anywhere}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.draft-row{display:flex;align-items:center;gap:8px;padding:11px 0;border-bottom:1px solid #e6e9f0}.draft-row span{flex:1;font-size:14px;overflow-wrap:anywhere}.auto-option{display:flex;align-items:center;gap:8px;margin-top:16px;font-size:14px}.auto-option input{width:18px;height:18px}.publish{background:#16633b}.pub-link{font-size:13px;overflow-wrap:anywhere}
 footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{flex-direction:column}.settings{grid-template-columns:1fr}main{margin:18px auto}.panel{padding:16px}.draft-row{flex-wrap:wrap}}
 </style>
 </head>
 <body><main>
-  <header><h1>楽天商品検索 ＋ AI記事作成</h1><p class="ui-version">UI v13 / AI記事＋D1保存</p><p>楽天の商品データから、紹介記事の下書きを生成します。公開前に内容を確認してください。</p></header>
+  <header><h1>楽天商品検索 ＋ AI記事作成</h1><p class="ui-version">UI v14 / AI記事＋D1保存＋公開</p><p>楽天の商品データから紹介記事を作成してD1に保存し、サイトへ公開できます。内容を確認して公開してください。</p></header>
   <section class="panel">
     <h2>① 楽天の商品を検索</h2>
     <form id="search-form">
@@ -43,7 +43,8 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
       <label for="tone">文体</label>
       <select id="tone"><option>標準</option><option>比較検討</option><option>初心者向け</option></select>
     </div>
-    <p class="help">楽天の商品検索に使う3つのSecretは変更不要です。記事は自動公開されません。</p>
+    <label class="auto-option"><input type="checkbox" id="auto-publish-after-generate"> AI記事生成後、D1に自動保存してそのまま公開（初期OFF）</label>
+    <p class="help">公開前の事実確認を推奨。AI生成内容をそのまま公開すると誤記載の恐れがあります。既存4つのSecretは変更不要です。</p>
     <p id="ai-status" role="status"></p>
   </section>
   <section id="results" class="grid" aria-label="検索結果"></section>
@@ -51,12 +52,13 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
     <h2>③ 記事の下書きを確認・編集</h2>
     <p class="help" id="draft-meta"></p>
     <textarea id="draft-text" rows="19" spellcheck="true" aria-label="AI記事の下書き"></textarea>
-    <div class="actions"><button id="save-draft" type="button">D1に保存・更新</button><button id="save-local-draft" type="button" class="secondary">この端末にも保存</button><button id="copy-draft" type="button" class="secondary">コピー</button><button id="download-draft" type="button" class="secondary">Markdownを保存</button></div>
-    <p id="draft-status" role="status"></p>
+    <div class="actions"><button id="publish-current" type="button" class="publish">保存して公開・更新</button><button id="unpublish-current" type="button" class="secondary">公開停止</button><button id="save-draft" type="button">D1に保存・更新</button><button id="save-local-draft" type="button" class="secondary">この端末にも保存</button><button id="copy-draft" type="button" class="secondary">コピー</button><button id="download-draft" type="button" class="secondary">Markdownを保存</button></div>
+    <p id="draft-status" role="status"></p><p id="publish-status" role="status"></p>
   </section>
   <section class="panel">
     <h2>④ D1に保存された記事（別端末からも閲覧・編集可能）</h2>
-    <p class="help">管理者キーを入力して「D1一覧を読み込む」を押してください。自動公開はしません。</p>
+    <p class="help">保存済み記事はここから公開・公開停止できます。公開記事は誰でも閲覧できるため、個人情報や誤った商品説明を含めないでください。</p>
+    <p><a href="/articles" target="_blank" rel="noopener">公開済み記事一覧を見る</a></p>
     <div class="actions"><button id="load-db-drafts" type="button">D1一覧を読み込む</button></div>
     <p id="db-status" role="status"></p>
     <div id="db-list" class="draft-list"></div>
@@ -66,7 +68,7 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
     <p class="help">旧版の下書きは削除せず残しています。「開く」→「D1に保存・更新」で移行できます。</p>
     <div id="draft-list" class="draft-list"></div>
   </section>
-  <footer>※アフィリエイト広告を含む記事の下書き作成ツールです。価格や仕様は楽天市場の商品ページで再確認してください。下書きは公開されません。DBの内容は管理者キーがないと閲覧できません。</footer>
+  <footer>※アフィリエイト広告を含む記事の下書き作成ツールです。価格や仕様は楽天市場の商品ページで再確認してください。公開ボタンを押した記事のみ外部に表示されます。下書きと管理画面は管理者キーがないと閲覧できません。</footer>
 </main><script>const $ = (selector) => document.querySelector(selector);
 const form = $('#search-form');
 const status = $('#status');
@@ -79,6 +81,7 @@ const draftStatus = $('#draft-status');
 const draftList = $('#draft-list');
 const dbList = $('#db-list');
 const dbStatus = $('#db-status');
+const publishStatus = $('#publish-status');
 const adminHeaders = () => ({ 'X-Admin-Token': $('#admin-token').value.trim() });
 const requireToken = () => {
   if ($('#admin-token').value.trim()) return true;
@@ -109,6 +112,7 @@ const openDraft = (draft) => {
   draftMeta.textContent = `${draft.title || '無題の下書き'} ／ ${(draft.updatedAt || draft.generatedAt) ? new Date(draft.updatedAt || draft.generatedAt).toLocaleString('ja-JP') : ''}`;
   editor.hidden = false;
   draftStatus.textContent = '公開前に文章・価格・リンクを確認してください。';
+  publishStatus.textContent = draft.status === 'published' ? 'この記事は公開中です。編集内容は「保存して公開・更新」で反映されます。' : '未公開の記事です。';
   editor.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 const renderSavedDrafts = () => {
@@ -146,7 +150,7 @@ const loadDbDrafts = async () => {
     }
     for (const entry of data.drafts) {
       const line = document.createElement('div'); line.className = 'draft-row';
-      const label = document.createElement('span'); label.textContent = `${entry.title} ／ ${entry.updatedAt.slice(0, 10)}`;
+      const label = document.createElement('span'); label.textContent = `${entry.status === 'published' ? '公開中' : '下書き'} ／ ${entry.title} ／ ${entry.updatedAt.slice(0, 10)}`;
       const open = document.createElement('button'); open.type = 'button'; open.className = 'secondary small'; open.textContent = '開く・編集';
       open.addEventListener('click', async () => {
         try {
@@ -163,7 +167,29 @@ const loadDbDrafts = async () => {
           await loadDbDrafts();
         } catch (error) { dbStatus.textContent = error.message || '削除に失敗しました。'; }
       });
-      line.append(label, open, remove); dbList.append(line);
+      const pub = document.createElement('button'); pub.type = 'button'; pub.className = 'small publish'; pub.textContent = entry.status === 'published' ? '再公開' : '公開';
+      pub.addEventListener('click', async () => {
+        try {
+          if (entry.status !== 'published' && !confirm(`「${entry.title}」を公開しますか？一般の訪問者が読めるようになります。`)) return;
+          await apiRequest(`/api/drafts/${encodeURIComponent(entry.id)}/publish`, { method:'POST' });
+          dbStatus.textContent = '公開しました。';
+          await loadDbDrafts();
+        } catch (error) { dbStatus.textContent = error.message || '公開に失敗しました。'; }
+      });
+      const stop = document.createElement('button'); stop.type = 'button'; stop.className = 'small secondary'; stop.textContent = '公開停止'; stop.disabled = entry.status !== 'published';
+      stop.addEventListener('click', async () => {
+        try {
+          await apiRequest(`/api/drafts/${encodeURIComponent(entry.id)}/publish`, {method:'DELETE'});
+          if (currentDraft?.id === entry.id) { currentDraft.status = 'draft'; publishStatus.textContent = '公開を停止しました。'; }
+          await loadDbDrafts();
+        } catch (error) { dbStatus.textContent = error.message || '公開停止に失敗しました。'; }
+      });
+      line.append(label, open, pub, stop);
+      if (entry.status === 'published') {
+        const a = document.createElement('a'); a.href = `/articles/${encodeURIComponent(entry.id)}`;
+        a.target = '_blank'; a.rel = 'noopener'; a.className = 'pub-link'; a.textContent = '記事を見る'; line.append(a);
+      }
+      line.append(remove); dbList.append(line);
     }
     dbStatus.textContent = `${data.drafts.length}件をD1から取得しました。`;
   } catch (error) { dbStatus.textContent = error.message || 'D1への接続に失敗しました。'; }
@@ -187,6 +213,12 @@ const generateArticle = async (item, button) => {
     const draft = { id: crypto.randomUUID(), title: data.title, markdown: data.markdown, generatedAt: data.generatedAt };
     openDraft(draft);
     aiStatus.textContent = '記事の下書きが生成されました。内容を確認して保存してください。';
+    if ($('#auto-publish-after-generate').checked) {
+      aiStatus.textContent = 'AI記事をD1に保存して公開中…';
+      await publishCurrent();
+      aiStatus.textContent = 'AI記事を自動公開しました。公開記事へのリンクは編集欄に表示されています。';
+      await loadDbDrafts();
+    }
   } catch (error) { aiStatus.textContent = error instanceof Error ? error.message : '記事生成に失敗しました。'; }
   finally { aiBusy = false; button.disabled = false; }
 };
@@ -227,24 +259,51 @@ form.addEventListener('submit', async (e) => {
   } catch (error) { setStatus(error instanceof Error ? error.message : '検索に失敗しました。'); }
 });
 
+const saveDbCurrent = async () => {
+  if (!currentDraft) throw new Error('記事が選択されていません。');
+  if (!$('#admin-token').value.trim()) throw new Error('管理者キーが必要です。');
+  const draft = { ...currentDraft, markdown: draftText.value };
+  const exists = Boolean(currentDraft.savedToDb);
+  const data = await apiRequest(exists ? `/api/drafts/${encodeURIComponent(draft.id)}` : '/api/drafts', {
+    method: exists ? 'PUT' : 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({id:draft.id,title:draft.title,markdown:draft.markdown})
+  });
+  currentDraft = {...data.draft, savedToDb:true};
+  return currentDraft;
+};
+const publishCurrent = async () => {
+  const draft = await saveDbCurrent();
+  const result = await apiRequest(`/api/drafts/${encodeURIComponent(draft.id)}/publish`, {method:'POST'});
+  currentDraft = {...draft, status:'published', publishedAt:result.publishedAt};
+  const link = `/articles/${encodeURIComponent(draft.id)}`;
+  publishStatus.replaceChildren();
+  const a = document.createElement('a'); a.href = link; a.target = '_blank'; a.rel = 'noopener'; a.textContent = '公開記事を開く';
+  publishStatus.append('公開しました。 ',a);
+  return result;
+};
 $('#save-draft').addEventListener('click', async () => {
-  if (!currentDraft) return;
-  if (!requireToken()) { draftStatus.textContent = 'D1保存には管理者キーが必要です。'; return; }
   const button = $('#save-draft'); button.disabled = true;
   draftStatus.textContent = 'D1に保存中…';
-  try {
-    const draft = { ...currentDraft, markdown: draftText.value };
-    const existing = Boolean(currentDraft.savedToDb);
-    const data = await apiRequest(existing ? `/api/drafts/${encodeURIComponent(draft.id)}` : '/api/drafts', {
-      method: existing ? 'PUT' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: draft.id, title: draft.title, markdown: draft.markdown })
-    });
-    currentDraft = { ...data.draft, savedToDb: true };
-    draftStatus.textContent = 'D1に保存しました。別端末からも管理者キーで閲覧できます。';
-    await loadDbDrafts();
-  } catch (error) { draftStatus.textContent = error.message || 'D1への保存に失敗しました。'; }
+  try { await saveDbCurrent(); draftStatus.textContent = '下書きをD1に保存しました（公開はされません）。'; await loadDbDrafts(); }
+  catch (error) { draftStatus.textContent = error.message || 'D1に保存できませんでした。'; }
   finally { button.disabled = false; }
+});
+$('#publish-current').addEventListener('click', async () => {
+  if (!currentDraft) return;
+  if (currentDraft.status !== 'published' && !confirm('記事を公開しますか？一般の訪問者が読めるようになります。')) return;
+  const button = $('#publish-current'); button.disabled = true;
+  publishStatus.textContent = '保存して公開中…';
+  try { await publishCurrent(); await loadDbDrafts(); }
+  catch (error) { publishStatus.textContent = error.message || '公開に失敗しました。'; }
+  finally { button.disabled = false; }
+});
+$('#unpublish-current').addEventListener('click', async () => {
+  if (!currentDraft?.savedToDb) { publishStatus.textContent = 'まだD1に保存されていません。'; return; }
+  try {
+    await apiRequest(`/api/drafts/${encodeURIComponent(currentDraft.id)}/publish`,{method:'DELETE'});
+    currentDraft.status='draft'; publishStatus.textContent='公開を停止しました。下書きはD1に残ります。';
+    await loadDbDrafts();
+  } catch (error) { publishStatus.textContent=error.message || '公開停止に失敗しました。'; }
 });
 $('#save-local-draft').addEventListener('click', () => {
   if (!currentDraft) return;

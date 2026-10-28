@@ -17,4 +17,8 @@ const workerSource = readFileSync(config.main,'utf8');
 const uiSource = readFileSync(`${config.assets.directory}/index.html`,'utf8');
 assert(workerSource.includes(JSON.stringify(uiSource)), 'Worker embedded UI differs from index.html');
 assert(uiSource.includes('D1に保存・更新'));
-console.log('PASS: Worker, D1 binding and UI v13 paths match GitHub layout');
+console.log('PASS: Worker, D1 binding and UI v14 paths match GitHub layout');
+
+assert(uiSource.includes('id="auto-publish-after-generate"'));
+assert(uiSource.includes('公開済み記事一覧を見る'));
+assert(workerSource.includes('article_publications'));

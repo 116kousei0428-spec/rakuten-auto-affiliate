@@ -2,46 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import worker from '../worker.js';
 
-class FakeD1 {
-  constructor() { this.rows = new Map(); this.schemaCreated = false; this.calls = []; }
-  prepare(sql) {
-    const db = this;
-    let bindings = [];
-    const statement = {
-      bind(...args) { bindings = args; return statement; },
-      async run() {
-        db.calls.push({sql,bindings});
-        if (sql.startsWith('CREATE TABLE')) { db.schemaCreated = true; return {success:true,meta:{changes:0}}; }
-        if (!db.schemaCreated) throw new Error('Missing table');
-        if (sql.startsWith('INSERT INTO')) {
-          const [id,title,markdown,created_at,updated_at] = bindings;
-          if (db.rows.has(id)) throw new Error('UNIQUE constraint');
-          db.rows.set(id,{id,title,markdown,status:'draft',created_at,updated_at});
-          return {success:true,meta:{changes:1}};
-        }
-        if (sql.startsWith('UPDATE')) {
-          const [title,markdown,updated_at,id] = bindings;
-          const old = db.rows.get(id);
-          if (!old) return {meta:{changes:0}};
-          db.rows.set(id,{...old,title,markdown,updated_at});
-          return {meta:{changes:1}};
-        }
-        if (sql.startsWith('DELETE')) { const exists=db.rows.delete(bindings[0]); return {meta:{changes:exists?1:0}}; }
-        throw new Error('unexpected run: '+sql);
-      },
-      async first() {
-        db.calls.push({sql,bindings});
-        const row=db.rows.get(bindings[0]);
-        return row?{...row}:null;
-      },
-      async all() {
-        db.calls.push({sql,bindings});
-        return {results:Array.from(db.rows.values()).sort((a,b)=>b.updated_at.localeCompare(a.updated_at)).slice(0,100).map(r=>({...r}))};
-      }
-    };
-    return statement;
-  }
-}
+import { FakeD1 } from './fake-d1.mjs';
+
 const env = () => ({ DB: new FakeD1(),AI_ADMIN_TOKEN:'key-unique-test-value',ASSETS:{fetch:()=>new Response('static-ok')} });
 const query = (e,route='/api/drafts', method='GET', body=null, token='key-unique-test-value', origin='https://example.test')=>worker.fetch(new Request(`https://example.test${route}`,{
   method, headers: {'X-Admin-Token':token,...(body?{'Content-Type':'application/json'}:{}),Origin:origin},body:body?JSON.stringify(body):undefined
@@ -52,7 +14,7 @@ const initial = { id:'123e4567-e89b-42d3-a456-426614174000',title:'イヤホン�
 test('health returns D1 binding presence without exposing UUID', async()=>{
   const r=await worker.fetch(new Request('https://example.test/api/health'),env());
   const data=await r.json(); assert.equal(data.dbConfigured,true);
-  assert.equal(data.release,'v13'); assert.ok(!JSON.stringify(data).includes('81926891'));
+  assert.equal(data.release,'v14'); assert.ok(!JSON.stringify(data).includes('81926891'));
 });
 test('unauthed drafts never hit D1, missing database yields 503', async()=>{
   const e=env(); const bad=await query(e,'/api/drafts','GET',null,'wrong');
