@@ -1,10 +1,10 @@
-<!-- Rakuten AI UI v14, served from Worker to prevent stale public/index.html -->
+<!-- Rakuten AI UI v15, served from Worker to prevent stale public/index.html -->
 <!doctype html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>楽天商品検索・AI記事下書き｜v14</title>
+<title>楽天商品検索・AI記事下書き｜v15</title>
 <style>:root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#182134;background:#f4f6fa}
 *{box-sizing:border-box}main{max-width:1080px;margin:30px auto;padding:0 20px}header{margin-bottom:24px}
 h1{font-size:27px;margin:0 0 8px}h2{font-size:18px;margin:0 0 14px}p{line-height:1.65}form{display:flex;gap:10px}
@@ -25,7 +25,7 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
 </style>
 </head>
 <body><main>
-  <header><h1>楽天商品検索 ＋ AI記事作成</h1><p class="ui-version">UI v14 / AI記事＋D1保存＋公開</p><p>楽天の商品データから紹介記事を作成してD1に保存し、サイトへ公開できます。内容を確認して公開してください。</p></header>
+  <header><h1>楽天商品検索 ＋ AI記事作成</h1><p class="ui-version">UI v15 / AI記事＋D1保存＋公開＋Threads投稿</p><p>楽天の商品データから紹介記事を作成してD1に保存し、サイトへ公開できます。内容を確認して公開してください。</p></header>
   <section class="panel">
     <h2>① 楽天の商品を検索</h2>
     <form id="search-form">
@@ -62,6 +62,20 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
     <div class="actions"><button id="load-db-drafts" type="button">D1一覧を読み込む</button></div>
     <p id="db-status" role="status"></p>
     <div id="db-list" class="draft-list"></div>
+  </section>
+  <section class="panel" id="threads-section">
+    <h2>⑤ Threads投稿文（雑学 → 商品紹介）</h2>
+    <p class="help">D1に公開した記事から「雑学 → 商品紹介 → 記事リンク → PR」の順で投稿文を作成します。文章は公開前に確認・修正してください。</p>
+    <div class="actions"><button id="load-social" type="button" class="secondary">Threads下書き一覧を読み込む</button></div>
+    <p id="social-status" role="status"></p>
+    <div id="social-list"></div>
+    <div id="social-editor" hidden>
+      <p class="help" id="social-meta"></p>
+      <textarea id="social-text" rows="10" maxlength="500" style="width:100%;line-height:1.7" aria-label="Threads投稿文"></textarea>
+      <p class="help" id="social-count">0 / 500文字</p>
+      <div class="actions"><button id="save-social" type="button">投稿文をD1に保存</button><button id="copy-social" type="button" class="secondary">投稿文をコピー</button><button id="publish-social" type="button" class="publish">Threadsへ投稿（承認後）</button></div>
+    </div>
+    <p class="help">Threadsへ直接投稿するにはMetaのThreads API権限と、Cloudflare SecretのTHREADS_ACCESS_TOKENが必要です。未設定でも文章作成・保存・コピーはできます。自動送信は初期OFFです。</p>
   </section>
   <section class="panel">
     <h2>このブラウザに残っている旧版下書き</h2>
@@ -185,6 +199,13 @@ const loadDbDrafts = async () => {
         } catch (error) { dbStatus.textContent = error.message || '公開停止に失敗しました。'; }
       });
       line.append(label, open, pub, stop);
+      if (entry.status === 'published') {
+        const socialBtn = document.createElement('button');
+        socialBtn.type = 'button'; socialBtn.className = 'secondary small';
+        socialBtn.textContent = '雑学→Threads投稿文';
+        socialBtn.addEventListener('click', () => createSocial(entry.id));
+        line.append(socialBtn);
+      }
       if (entry.status === 'published') {
         const a = document.createElement('a'); a.href = `/articles/${encodeURIComponent(entry.id)}`;
         a.target = '_blank'; a.rel = 'noopener'; a.className = 'pub-link'; a.textContent = '記事を見る'; line.append(a);
@@ -323,6 +344,77 @@ $('#download-draft').addEventListener('click', () => {
   const fileUrl = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = fileUrl; a.download = `rakuten-article-${new Date().toISOString().slice(0, 10)}.md`;
   document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(fileUrl), 1000);
+});
+const socialStatus = $('#social-status');
+const socialList = $('#social-list');
+const socialEditor = $('#social-editor');
+const socialText = $('#social-text');
+let currentSocial = null;
+function openSocial(post){
+  currentSocial={...post};
+  socialText.value=post.body;
+  socialText.disabled=post.status!=='draft';
+  $('#social-meta').textContent=`投稿元記事ID: ${post.article_id} ／ 状態: ${post.status}`;
+  socialEditor.hidden=false;
+  $('#publish-social').disabled=post.status!=='draft';
+  $('#save-social').disabled=post.status!=='draft';
+  updateSocialCount();
+  $('#threads-section').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function updateSocialCount(){ $('#social-count').textContent=`${[...socialText.value].length} / 500文字`; }
+socialText.addEventListener('input',updateSocialCount);
+async function loadSocial(){
+  if(!requireToken())return;
+  socialStatus.textContent='Threads下書きを読込中…';
+  try{
+    const data=await apiRequest('/api/social/threads');
+    socialList.replaceChildren();
+    socialStatus.textContent=`${data.posts.length}件の投稿下書き・履歴を取得しました。${data.threadsConfigured?'':'（Threads API連携は未設定）'}`;
+    for(const post of data.posts){
+      const row=document.createElement('div');row.className='draft-row';
+      const title=document.createElement('span');title.textContent=`${post.status}: ${post.body.slice(0,65)}…`;
+      const btn=document.createElement('button');btn.className='secondary small';btn.textContent='開く';btn.addEventListener('click',()=>openSocial(post));
+      row.append(title,btn);socialList.append(row);
+    }
+  }catch(e){socialStatus.textContent=e.message||'読み込みに失敗しました。';}
+}
+async function createSocial(articleId){
+  if(!requireToken())return;
+  socialStatus.textContent='雑学から始まる投稿文を作成中…';
+  try{
+    const data=await apiRequest('/api/social/threads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({articleId})});
+    socialStatus.textContent=data.alreadyExists?'保存済みの投稿文を開きました。':'雑学→商品紹介の投稿文を作成しました。内容を確認してください。';
+    openSocial(data.post);
+    await loadSocial();
+  }catch(e){socialStatus.textContent=e.message||'下書きを作成できませんでした。';}
+}
+$('#load-social').addEventListener('click',loadSocial);
+$('#save-social').addEventListener('click',async()=>{
+  if(!currentSocial||!requireToken())return;
+  const btn=$('#save-social');btn.disabled=true;
+  try{
+    const data=await apiRequest(`/api/social/threads/${encodeURIComponent(currentSocial.article_id)}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({body:socialText.value})});
+    currentSocial=data.post;socialStatus.textContent='D1に投稿文を保存しました。';await loadSocial();
+  }catch(e){socialStatus.textContent=e.message||'保存に失敗しました。';}finally{btn.disabled=false;}
+});
+$('#copy-social').addEventListener('click',async()=>{
+  try{await navigator.clipboard.writeText(socialText.value);socialStatus.textContent='投稿文をコピーしました。';}
+  catch{socialStatus.textContent='コピーできませんでした。投稿文を選択してコピーしてください。';}
+});
+$('#publish-social').addEventListener('click',async()=>{
+  if(!currentSocial||!requireToken())return;
+  if(socialText.value.trim()!==currentSocial.body.trim()){
+    socialStatus.textContent='編集内容を先に「投稿文をD1に保存」してください。';return;
+  }
+  if(!confirm('この文章をThreadsに公開しますか？外部に投稿されます。'))return;
+  const button=$('#publish-social');button.disabled=true;
+  socialStatus.textContent='Threadsへ送信中…';
+  try{
+    const data=await apiRequest(`/api/social/threads/${encodeURIComponent(currentSocial.article_id)}/publish`,{method:'POST'});
+    socialStatus.textContent=data.status==='published'?'Threadsに公開しました。':'投稿結果を確認してください。';
+    currentSocial.status=data.status;await loadSocial();
+  }catch(e){socialStatus.textContent=e.message||'投稿できませんでした。';}
+  finally{button.disabled=currentSocial?.status!=='draft';}
 });
 renderSavedDrafts();
 </script></body></html>

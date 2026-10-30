@@ -1,28 +1,60 @@
-# 楽天アフィリエイト v14 — D1記事公開
+# 楽天アフィリエイト v15 — 雑学から始まるThreads投稿
 
-GitHub → Cloudflare Workers 用。商品検索・Workers AI記事生成・既存D1記事データを維持。
+GitHub → Cloudflare Workers のプロジェクトルートにZIPの**中身だけ**をアップロードする。
 
-## 公開設定
-- 既存の `wrangler.jsonc` にDB設定済み：`rakuten-affiliate-db`。変更不要。
-- Cloudflare Secret（`RAKUTEN_APP_ID`、`RAKUTEN_ACCESS_KEY`、`RAKUTEN_AFFILIATE_ID`、`AI_ADMIN_TOKEN`）も変更不要。
-- GitHubのリポジトリ **直下** に解凍したファイルの中身を上書き。ZIPファイル自体や親フォルダごとアップロードしない。
-- デプロイコマンドは `npx wrangler deploy`。ビルド不要。
-- デプロイ後 `/api/health` の `release: v14` と `dbConfigured: true` を確認。
+## 追加機能
 
-## 記事を公開する
-1. サイトで管理者キーを入力し「D1一覧を読み込む」。
-2. 保存済み記事の「公開」を押す、または記事を開き「保存して公開・更新」。
-3. `/articles` に公開記事だけが表示される。公開URLは `/articles/<記事ID>`。
-4. 「公開停止」で一般の訪問者から非表示にする。D1下書きは残る。
-5. AI生成の自動保存・即時公開はチェックボックスで明示的にONにできる（初期OFF）。
+公開済み記事の「雑学→Threads投稿文」から、以下の順序でThreads投稿文を作成する。
 
-## データの扱い・安全性
-- **既存の `article_drafts` テーブルは変更しません**。新規 `article_publications` テーブルに公開時のスナップショットを保存します。初回に管理者がD1操作すると自動作成。
-- D1下書きは管理者キー必須。公開記事の閲覧は鍵不要。管理者の編集は公開URLに反映されず、「保存して公開・更新」するまで以前の公開内容が維持されます。
-- 下書きを削除する場合、D1のトランザクションで公開スナップショットも削除します。
-- 公開記事のMarkdownはエスケープして安全なHTMLへ変換します。外部リンクはHTTPSだけを許可します。
-- AIが作る内容は誤り得るため、通常は公開前の内容確認が必要です。広告注記は公開ページにも表示します。
-- SNS自動投稿は **未実装**。
-- 本番でのCloudflareデプロイは未検証。Nodeのローカルモックテストとビルドチェックを実施。
+1. 【ちょっとした雑学】（事前に用意した分野別の一般的な説明。根拠のない商品効果は付けない）
+2. 【商品紹介】（D1の公開記事タイトルから作成）
+3. 公開記事へのリンク
+4. 「※PR・アフィリエイト広告を含みます」
 
-参考：https://developers.cloudflare.com/d1/worker-api/
+**投稿文は自動送信されない。** 編集・コピー・D1保存はMeta連携なしで使える。Threadsへの直接送信にはMeta Threads APIの認証が別途必要。
+
+### デプロイ方法
+
+- GitHubのルートにZIP解凍後のファイルを配置（ZIPや親フォルダのままアップロードしない）。
+- Cloudflare Deploy command: `npx wrangler deploy`
+- `wrangler.jsonc`の`name`は`rakuten-auto-affiliate`、エントリポイントは`./worker.js`。DBのIDは既存のものを継承。
+- 登録済みのSecret：`RAKUTEN_APP_ID`、`RAKUTEN_ACCESS_KEY`、`RAKUTEN_AFFILIATE_ID`、`AI_ADMIN_TOKEN` はそのまま。D1の既存`article_drafts`と`article_publications`を削除・変更しない。
+- `GET /api/health`の`release: "v15"`を確認。UI上部にも`UI v15`。
+
+### 雑学投稿を作る
+
+1. 管理者キーを入力し「D1一覧を読み込む」。
+2. 公開済み記事の横にある「雑学→Threads投稿文」を押す。
+3. 投稿文を確認し、必要なら編集して「投稿文をD1に保存」。
+4. Threads連携前は「投稿文をコピー」で手動投稿できる。
+
+初回操作で`threads_posts`テーブルを自動作成。記事テーブルとは分離している。Meta側へは公開済みの投稿を重複送信しない設計だが、通信が途中で切れた場合は投稿結果が不明になるため、再送信は自動実行せず停止する。
+
+### Threads APIを接続したい場合
+
+Meta DevelopersでThreads用アプリとOAuth認証を設定し、投稿先のThreadsアカウントから権限（少なくとも`threads_basic`、`threads_content_publish`）を付与されたThreads User Access Tokenを取得する。
+
+Cloudflareの**生産環境**に次のSecretを追加（GitHubに書かない）。
+
+- `THREADS_ACCESS_TOKEN` — Threadsユーザーのアクセストークン（秘密情報）
+
+登録後に再デプロイして`/api/health`の`threadsConfigured: true`を確認。UIの「Threadsへ投稿（承認後）」ボタンは投稿文をD1に保存し、ユーザーが確認ダイアログで承認した時だけMeta APIに送信する。
+
+Meta公式APIは `/me/threads` にテキストのコンテナー作成、`/me/threads_publish` にそのIDを使って公開する方式。https://www.postman.com/meta/threads/collection/dht3nzz/threads-api
+
+**注意:** 投稿先のMetaアプリの権限、審査・開発モード、アクセストークンの有効期限の条件がある。これらはまだ本番接続テストしていない。v15はOAuth接続画面・自動トークン更新・予約/定期自動投稿を含まない。接続まではコピーで手動投稿する。
+
+### 説明・制約
+
+- 雑学文は**現状、検証可能な一般知識に限定した固定テンプレート**から選択する。AIが毎回新しい雑学を発明するわけではない。事実関係を確認してから投稿すること。
+- 500文字以内、記事リンクとPR明記を必須とする。楽天の記事そのものは従来通りAI作成とD1公開が可能。
+- 公開記事がないと投稿文を作れない。1つの公開記事につき投稿下書きは1件。
+- 外部投稿が成功してD1更新に失敗した場合など、送信状態が不明なケースでは管理者によるMeta上の確認が必要。
+- 今回の検証はNodeのローカルテストおよびビルドチェック。Cloudflare/Meta本番通信は未検証。
+
+## 開発者向け検証
+
+```bash
+npm run build
+npm run check
+```

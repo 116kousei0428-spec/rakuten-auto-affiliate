@@ -1,5 +1,5 @@
 export class FakeD1 {
-  constructor() { this.drafts = new Map(); this.publications = new Map(); this.schemaCreated = false; this.calls = []; }
+  constructor() { this.drafts = new Map(); this.publications = new Map(); this.threads = new Map(); this.schemaCreated = false; this.calls = []; }
   get rows(){return this.drafts;} // v13 compatibility
   prepare(sql) {
     const db=this;
@@ -22,6 +22,29 @@ export class FakeD1 {
           db.publications.set(id,{id,title,markdown,published_at:prior?.published_at||published_at,updated_at});
           return {success:true,meta:{changes:1}};
         }
+        if (sql.startsWith('INSERT INTO threads_posts')) {
+          const [article_id,body,created_at,updated_at] = args;
+          db.threads.set(article_id,{article_id,body,status:'draft',container_id:null,external_id:null,created_at,updated_at,published_at:null});
+          return {success:true,meta:{changes:1}};
+        }
+        if (sql.startsWith('UPDATE threads_posts SET body=')) {
+          const [body,updated_at,id]=args;
+          const old=db.threads.get(id); if(!old)return {meta:{changes:0}};
+          db.threads.set(id,{...old,body,updated_at});return {meta:{changes:1}};
+        }
+        if (sql.startsWith('UPDATE threads_posts SET status=\'sending\'')) {
+          const [updated_at,id]=args;
+          const old=db.threads.get(id);if(!old||old.status!=='draft')return {meta:{changes:0}};
+          db.threads.set(id,{...old,status:'sending',updated_at});return {meta:{changes:1}};
+        }
+        if (sql.startsWith('UPDATE threads_posts SET container_id=')) {
+          const [container_id,id]=args;
+          const old=db.threads.get(id); db.threads.set(id,{...old,container_id});return {meta:{changes:1}};
+        }
+        if (sql.startsWith('UPDATE threads_posts SET status=\'published\'')) {
+          const [external_id,published_at,updated_at,id]=args;
+          const old=db.threads.get(id);db.threads.set(id,{...old,status:'published',external_id,published_at,updated_at});return {meta:{changes:1}};
+        }
         if (sql.startsWith('UPDATE article_drafts')) {
           const [title,markdown,updated_at,id]=args;
           const old=db.drafts.get(id); if(!old)return {meta:{changes:0}};
@@ -37,6 +60,7 @@ export class FakeD1 {
       },
       async first() {
         db.calls.push({sql,bindings:args});
+        if(sql.includes('FROM threads_posts')) return db.threads.has(args[0]) ? {...db.threads.get(args[0])} : null;
         if(sql.includes('FROM article_publications')) {
           const pub=db.publications.get(args[0]);
           if(!pub)return null;
@@ -48,6 +72,7 @@ export class FakeD1 {
       },
       async all() {
         db.calls.push({sql,bindings:args});
+        if(sql.includes('FROM threads_posts')) return {results:[...db.threads.values()].map(x=>({...x}))};
         if(sql.includes('FROM article_publications')) return {results:[...db.publications.values()].sort((a,b)=>b.published_at.localeCompare(a.published_at)).slice(0,50).map(x=>({...x}))};
         return {results:[...db.drafts.values()].sort((a,b)=>b.updated_at.localeCompare(a.updated_at)).slice(0,100).map(d=>({...d,published_at:db.publications.get(d.id)?.published_at||null}))};
       }

@@ -14,7 +14,7 @@ const initial = { id:'123e4567-e89b-42d3-a456-426614174000',title:'イヤホン�
 test('health returns D1 binding presence without exposing UUID', async()=>{
   const r=await worker.fetch(new Request('https://example.test/api/health'),env());
   const data=await r.json(); assert.equal(data.dbConfigured,true);
-  assert.equal(data.release,'v14'); assert.ok(!JSON.stringify(data).includes('81926891'));
+  assert.equal(data.release,'v15'); assert.ok(!JSON.stringify(data).includes('81926891'));
 });
 test('unauthed drafts never hit D1, missing database yields 503', async()=>{
   const e=env(); const bad=await query(e,'/api/drafts','GET',null,'wrong');
