@@ -1,60 +1,50 @@
-# 楽天アフィリエイト v15 — 雑学から始まるThreads投稿
+# 楽天アフィリエイト v16 — ジャンル別雑学・短い商品紹介・管理者キー保存・Threads接続確認
 
-GitHub → Cloudflare Workers のプロジェクトルートにZIPの**中身だけ**をアップロードする。
+## GitHubにアップロードする前に
 
-## 追加機能
+**これは既存v15に上書きする更新版です。** ZIPを解凍し、`worker.js`と`wrangler.jsonc`が**リポジトリ直下**に見えるように、ZIPの中身だけをGitHubへアップロードします。POSのリポジトリには上げないでください。
 
-公開済み記事の「雑学→Threads投稿文」から、以下の順序でThreads投稿文を作成する。
+Cloudflareの既存Workerは `rakuten-auto-affiliate`、GitHub連携のデプロイコマンドは `npx wrangler deploy` を維持します。
 
-1. 【ちょっとした雑学】（事前に用意した分野別の一般的な説明。根拠のない商品効果は付けない）
-2. 【商品紹介】（D1の公開記事タイトルから作成）
-3. 公開記事へのリンク
-4. 「※PR・アフィリエイト広告を含みます」
+- `wrangler.jsonc`: エントリポイント `./worker.js`、静的ファイル `./public`、AI `AI`、D1 `DB` を維持。
+- D1: 既存の `rakuten-affiliate-db` とIDを維持。既存の `article_drafts`、`article_publications`、`threads_posts` のデータは削除しません。
+- 既存Secret: `RAKUTEN_APP_ID`、`RAKUTEN_ACCESS_KEY`、`RAKUTEN_AFFILIATE_ID`、`AI_ADMIN_TOKEN` は再登録不要。
+- ZIPにキー・トークンの実値は入っていません。GitHubに認証情報をアップロードしないでください。
+- デプロイ後 `https://rakuten-auto-affiliate.116kousei0428.workers.dev/api/health` で `release: "v16"` を確認。
 
-**投稿文は自動送信されない。** 編集・コピー・D1保存はMeta連携なしで使える。Threadsへの直接送信にはMeta Threads APIの認証が別途必要。
+## v16の変更点
 
-### デプロイ方法
+### 1. 雑学を商品ジャンルから自動選択
 
-- GitHubのルートにZIP解凍後のファイルを配置（ZIPや親フォルダのままアップロードしない）。
-- Cloudflare Deploy command: `npx wrangler deploy`
-- `wrangler.jsonc`の`name`は`rakuten-auto-affiliate`、エントリポイントは`./worker.js`。DBのIDは既存のものを継承。
-- 登録済みのSecret：`RAKUTEN_APP_ID`、`RAKUTEN_ACCESS_KEY`、`RAKUTEN_AFFILIATE_ID`、`AI_ADMIN_TOKEN` はそのまま。D1の既存`article_drafts`と`article_publications`を削除・変更しない。
-- `GET /api/health`の`release: "v15"`を確認。UI上部にも`UI v15`。
+日本酒、お茶、コーヒー、イヤホン、充電器、水筒、靴、照明、美容・ケア、掃除機に、事実確認可能な短い雑学テンプレートを用意しました。**現時点ではAIが無制限に雑学を創作するものではありません。** カテゴリ未判定時のみ汎用の注意事項を使用します。誤情報を自動投稿しないため、公開前の確認は引き続き必要です。
 
-### 雑学投稿を作る
+日本酒の例: 「一升は約1,800mL、一合は約180mL」。出典: https://www.sawanotsuru.co.jp/site/nihonshu-columm/knowledge/180cc-of-sake-cal/
 
-1. 管理者キーを入力し「D1一覧を読み込む」。
-2. 公開済み記事の横にある「雑学→Threads投稿文」を押す。
-3. 投稿文を確認し、必要なら編集して「投稿文をD1に保存」。
-4. Threads連携前は「投稿文をコピー」で手動投稿できる。
+### 2. 短い商品紹介
 
-初回操作で`threads_posts`テーブルを自動作成。記事テーブルとは分離している。Meta側へは公開済みの投稿を重複送信しない設計だが、通信が途中で切れた場合は投稿結果が不明になるため、再送信は自動実行せず停止する。
+検索用の長い商品名を丸写しせず、カテゴリ別の自然で短い紹介文を作ります。構成は「雑学 → 商品紹介 → 公開記事リンク → PR表記」、500文字以内。既存Threads下書きは勝手に変更しません。
 
-### Threads APIを接続したい場合
+**既存の日本酒の下書きを改善する場合:** 楽天サイトでThreads下書き一覧を読み込み、その下書きを「開く」→「雑学・紹介文を再生成」→確認ダイアログで承認。D1に新しい文面が保存されます。**手動編集済みの旧文面は上書きされる**ため注意してください。送信済み・送信中の文面は再生成できません。
 
-Meta DevelopersでThreads用アプリとOAuth認証を設定し、投稿先のThreadsアカウントから権限（少なくとも`threads_basic`、`threads_content_publish`）を付与されたThreads User Access Tokenを取得する。
+### 3. 管理者キーを任意で端末保存
 
-Cloudflareの**生産環境**に次のSecretを追加（GitHubに書かない）。
+管理者キー入力欄の下に「この端末に管理者キーを保存する」を追加しました。初期OFF。ONにすると同じブラウザ・同じサイトで自動入力し、OFFまたは「保存したキーを削除」で削除できます。キーは `localStorage` に保存され、平文で端末に残るため、**共有端末ではONにしないでください。** ブラウザデータ削除でも消えます。GitHubやD1には保存しません。
 
-- `THREADS_ACCESS_TOKEN` — Threadsユーザーのアクセストークン（秘密情報）
+### 4. Threads接続設定の案内と診断
 
-登録後に再デプロイして`/api/health`の`threadsConfigured: true`を確認。UIの「Threadsへ投稿（承認後）」ボタンは投稿文をD1に保存し、ユーザーが確認ダイアログで承認した時だけMeta APIに送信する。
+サイトの「Threads連携設定」に「Threads接続を確認」ボタンを追加。管理者キーによる認証後、Metaの `/me?fields=id,username` に問い合わせ、トークンが有効ならアカウント名を表示します。トークン本体は返しません。
 
-Meta公式APIは `/me/threads` にテキストのコンテナー作成、`/me/threads_publish` にそのIDを使って公開する方式。https://www.postman.com/meta/threads/collection/dht3nzz/threads-api
+直接投稿には、MetaのThreadsアプリと OAuth のユーザー認証、`threads_basic` と `threads_content_publish` の権限を持つThreads User Access Tokenが必要です。取得したトークンをCloudflareの**生産環境**のSecret `THREADS_ACCESS_TOKEN` に登録してください。Meta公式のThreads API資料: https://www.postman.com/meta/threads/collection/dht3nzz/threads-api
 
-**注意:** 投稿先のMetaアプリの権限、審査・開発モード、アクセストークンの有効期限の条件がある。これらはまだ本番接続テストしていない。v15はOAuth接続画面・自動トークン更新・予約/定期自動投稿を含まない。接続まではコピーで手動投稿する。
+この版は**接続診断と既存の承認後投稿処理**まで。Metaでのアプリ登録・OAuth自動連携・トークンの自動更新・定期自動投稿は未実装です。トークンがまだなければ下書き作成・D1保存・コピーを使えます。Metaへの実投稿は公開前に確認ダイアログを表示します。
 
-### 説明・制約
+## 検証
 
-- 雑学文は**現状、検証可能な一般知識に限定した固定テンプレート**から選択する。AIが毎回新しい雑学を発明するわけではない。事実関係を確認してから投稿すること。
-- 500文字以内、記事リンクとPR明記を必須とする。楽天の記事そのものは従来通りAI作成とD1公開が可能。
-- 公開記事がないと投稿文を作れない。1つの公開記事につき投稿下書きは1件。
-- 外部投稿が成功してD1更新に失敗した場合など、送信状態が不明なケースでは管理者によるMeta上の確認が必要。
-- 今回の検証はNodeのローカルテストおよびビルドチェック。Cloudflare/Meta本番通信は未検証。
+- `npm run build` — 公開用のソース構成・エントリポイント・D1バインディング・UIの一致を確認
+- `npm run check` — Nodeのローカルテスト45件
+- D1の保存・既存記事の保持、雑学投稿、再生成、投稿重複防止、管理者キーの端末保存/削除をモックで確認
+- **未検証:** 実際のCloudflareデプロイ、Metaへの接続・投稿（認証情報がないため）。本番成功を保証しません。
 
-## 開発者向け検証
+### 重要
 
-```bash
-npm run build
-npm run check
-```
+投稿文や紹介記事は、掲載前に商品仕様・価格・根拠を確認してください。誤情報や重複投稿を避けるため、外部送信が不明な場合は自動再送を停止します。

@@ -1,10 +1,10 @@
-<!-- Rakuten AI UI v15, served from Worker to prevent stale public/index.html -->
+<!-- Rakuten AI UI v16, served from Worker to prevent stale public/index.html -->
 <!doctype html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>楽天商品検索・AI記事下書き｜v15</title>
+<title>楽天商品検索・AI記事下書き｜v16</title>
 <style>:root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#182134;background:#f4f6fa}
 *{box-sizing:border-box}main{max-width:1080px;margin:30px auto;padding:0 20px}header{margin-bottom:24px}
 h1{font-size:27px;margin:0 0 8px}h2{font-size:18px;margin:0 0 14px}p{line-height:1.65}form{display:flex;gap:10px}
@@ -25,7 +25,7 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
 </style>
 </head>
 <body><main>
-  <header><h1>楽天商品検索 ＋ AI記事作成</h1><p class="ui-version">UI v15 / AI記事＋D1保存＋公開＋Threads投稿</p><p>楽天の商品データから紹介記事を作成してD1に保存し、サイトへ公開できます。内容を確認して公開してください。</p></header>
+  <header><h1>楽天商品検索 ＋ AI記事作成</h1><p class="ui-version">UI v16 / AI記事＋D1保存＋公開＋Threads投稿</p><p>楽天の商品データから紹介記事を作成してD1に保存し、サイトへ公開できます。内容を確認して公開してください。</p></header>
   <section class="panel">
     <h2>① 楽天の商品を検索</h2>
     <form id="search-form">
@@ -39,12 +39,16 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
     <p class="help">各商品カードの「AI記事を作成」を押すと、Cloudflare Workers AIで記事を生成します。生成は管理者だけが使えます。</p>
     <div class="settings">
       <label for="admin-token">管理者キー（CloudflareのAI_ADMIN_TOKEN）</label>
-      <input type="password" id="admin-token" placeholder="管理者キーを入力（保存しません）" autocomplete="off">
+      <input type="password" id="admin-token" placeholder="管理者キーを入力" autocomplete="off">
+      <span class="help">保存の設定</span>
+      <div><label class="auto-option" style="margin:0"><input id="remember-admin-token" type="checkbox"> この端末に管理者キーを保存する</label>
+      <button id="forget-admin-token" type="button" class="secondary small" style="margin-top:8px">保存したキーを削除</button>
+      <p id="admin-storage-status" class="help" role="status"></p></div>
       <label for="tone">文体</label>
       <select id="tone"><option>標準</option><option>比較検討</option><option>初心者向け</option></select>
     </div>
     <label class="auto-option"><input type="checkbox" id="auto-publish-after-generate"> AI記事生成後、D1に自動保存してそのまま公開（初期OFF）</label>
-    <p class="help">公開前の事実確認を推奨。AI生成内容をそのまま公開すると誤記載の恐れがあります。既存4つのSecretは変更不要です。</p>
+    <p class="help">公開前の事実確認を推奨。AI生成内容をそのまま公開すると誤記載の恐れがあります。管理者キーの端末保存は任意で、同じ端末のブラウザ内から読み取られるリスクがあります。共有端末では保存しないでください。</p>
     <p id="ai-status" role="status"></p>
   </section>
   <section id="results" class="grid" aria-label="検索結果"></section>
@@ -73,9 +77,15 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
       <p class="help" id="social-meta"></p>
       <textarea id="social-text" rows="10" maxlength="500" style="width:100%;line-height:1.7" aria-label="Threads投稿文"></textarea>
       <p class="help" id="social-count">0 / 500文字</p>
-      <div class="actions"><button id="save-social" type="button">投稿文をD1に保存</button><button id="copy-social" type="button" class="secondary">投稿文をコピー</button><button id="publish-social" type="button" class="publish">Threadsへ投稿（承認後）</button></div>
+      <div class="actions"><button id="regenerate-social" type="button" class="secondary">雑学・紹介文を再生成</button><button id="save-social" type="button">投稿文をD1に保存</button><button id="copy-social" type="button" class="secondary">投稿文をコピー</button><button id="publish-social" type="button" class="publish">Threadsへ投稿（承認後）</button></div>
     </div>
-    <p class="help">Threadsへ直接投稿するにはMetaのThreads API権限と、Cloudflare SecretのTHREADS_ACCESS_TOKENが必要です。未設定でも文章作成・保存・コピーはできます。自動送信は初期OFFです。</p>
+    <div class="panel" style="background:#f7f9fc">
+      <h3 style="font-size:16px;margin:0 0 8px">Threads連携設定</h3>
+      <p class="help">MetaでThreads対応アプリを作成し、本人が権限を許可したThreadsユーザーアクセストークンを取得後、Cloudflareの本番Secret <code>THREADS_ACCESS_TOKEN</code> に登録します。GitHubのコードやこの画面にはトークンを入力しないでください。</p>
+      <div class="actions"><button id="check-threads-connection" type="button" class="secondary">Threads接続を確認</button><a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener noreferrer">Metaアプリ管理画面</a></div>
+      <p id="threads-connection-status" class="help" role="status">連携状態は未確認です。</p>
+    </div>
+    <p class="help">接続ができても投稿権限と実投稿は別の確認が必要です。投稿は管理者が確認・承認した場合だけ送信します。自動投稿は初期OFFです。</p>
   </section>
   <section class="panel">
     <h2>このブラウザに残っている旧版下書き</h2>
@@ -96,6 +106,57 @@ const draftList = $('#draft-list');
 const dbList = $('#db-list');
 const dbStatus = $('#db-status');
 const publishStatus = $('#publish-status');
+const ADMIN_KEY_STORAGE = 'rakuten_admin_token_optional_v16';
+const adminTokenInput = $('#admin-token');
+const adminRemember = $('#remember-admin-token');
+const adminStorageStatus = $('#admin-storage-status');
+const forgetAdminToken = () => {
+  try { localStorage.removeItem(ADMIN_KEY_STORAGE); } catch {}
+  adminRemember.checked = false;
+};
+try {
+  const remembered = localStorage.getItem(ADMIN_KEY_STORAGE);
+  if (remembered) {
+    adminTokenInput.value = remembered;
+    adminRemember.checked = true;
+    adminStorageStatus.textContent = 'この端末に保存したキーを自動入力しました。';
+  }
+} catch { adminStorageStatus.textContent = '端末の保存領域を利用できません。'; }
+adminRemember.addEventListener('change', () => {
+  if (adminRemember.checked) {
+    if (!adminTokenInput.value.trim()) {
+      adminRemember.checked = false;
+      adminStorageStatus.textContent = '先に管理者キーを入力してください。';
+      return;
+    }
+    try {
+      localStorage.setItem(ADMIN_KEY_STORAGE, adminTokenInput.value.trim());
+      adminStorageStatus.textContent = 'この端末に保存しました。共有端末では使用しないでください。';
+    } catch {
+      adminRemember.checked = false;
+      adminStorageStatus.textContent = 'この端末には保存できませんでした。';
+    }
+  } else {
+    forgetAdminToken();
+    adminStorageStatus.textContent = '保存したキーを削除しました（入力欄は維持）。';
+  }
+});
+adminTokenInput.addEventListener('input', () => {
+  if (!adminRemember.checked) return;
+  if (!adminTokenInput.value.trim()) {
+    forgetAdminToken();
+    adminStorageStatus.textContent='キーを削除しました。';
+    return;
+  }
+  try { localStorage.setItem(ADMIN_KEY_STORAGE, adminTokenInput.value.trim()); }
+  catch { forgetAdminToken();adminStorageStatus.textContent='キーを保存できません。'; }
+});
+$('#forget-admin-token').addEventListener('click', () => {
+  forgetAdminToken();
+  adminTokenInput.value='';
+  adminStorageStatus.textContent='保存したキーと入力欄を削除しました。';
+  adminTokenInput.focus();
+});
 const adminHeaders = () => ({ 'X-Admin-Token': $('#admin-token').value.trim() });
 const requireToken = () => {
   if ($('#admin-token').value.trim()) return true;
@@ -358,6 +419,7 @@ function openSocial(post){
   socialEditor.hidden=false;
   $('#publish-social').disabled=post.status!=='draft';
   $('#save-social').disabled=post.status!=='draft';
+  $('#regenerate-social').disabled=post.status!=='draft';
   updateSocialCount();
   $('#threads-section').scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -389,6 +451,33 @@ async function createSocial(articleId){
   }catch(e){socialStatus.textContent=e.message||'下書きを作成できませんでした。';}
 }
 $('#load-social').addEventListener('click',loadSocial);
+$('#regenerate-social').addEventListener('click',async()=>{
+  if(!currentSocial||!requireToken())return;
+  if(currentSocial.status!=='draft') {socialStatus.textContent='投稿済みの文章は再生成できません。';return;}
+  if(!confirm('現在のThreads投稿下書きを新しい雑学・紹介文で上書きしますか？編集済みの文章は失われます。'))return;
+  const button=$('#regenerate-social');button.disabled=true;
+  try {
+    const data=await apiRequest(`/api/social/threads/${encodeURIComponent(currentSocial.article_id)}/regenerate`,{method:'POST'});
+    openSocial(data.post);
+    socialStatus.textContent='新しい雑学＋短い商品紹介文に更新しました。D1へ保存済みです。';
+    await loadSocial();
+  } catch(error){socialStatus.textContent=error.message||'再生成に失敗しました。';}
+  finally { button.disabled=currentSocial?.status!=='draft'; }
+});
+$('#check-threads-connection').addEventListener('click',async()=>{
+  if(!requireToken()) return;
+  const message=$('#threads-connection-status');
+  const button=$('#check-threads-connection');button.disabled=true;
+  message.textContent='Metaへの接続を確認中…';
+  try{
+    const response=await apiRequest('/api/social/threads/connection');
+    if(!response.configured) message.textContent='未設定：Cloudflareの生産SecretにTHREADS_ACCESS_TOKENを登録してください。';
+    else if(response.connected) message.textContent=`接続成功：${response.username?'@'+response.username:'Threadsアカウント'} （プロフィール取得済み。投稿権限は別途確認）`;
+    else message.textContent=`接続失敗：${response.reason||'不明'}${response.upstreamStatus?' ／ HTTP '+response.upstreamStatus:''}`;
+  }catch(error){message.textContent=error.message||'接続を確認できませんでした。';}
+  finally{button.disabled=false;}
+});
+
 $('#save-social').addEventListener('click',async()=>{
   if(!currentSocial||!requireToken())return;
   const btn=$('#save-social');btn.disabled=true;
