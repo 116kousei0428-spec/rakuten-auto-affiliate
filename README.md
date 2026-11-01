@@ -1,10 +1,10 @@
-# 楽天アフィリエイト v18.2 — 楽天ランキング・商店おすすめピックアップ
+# 楽天アフィリエイト v19 — 楽天ランキング・商店おすすめピックアップ
 
 ## 更新方法
 
 **既存v16/v17に上書きする更新版です。** ZIPを解凍して中身のファイル・フォルダを、楽天アフィリエイト用GitHubリポジトリのルートにアップロードしてください。**POSのGitHubリポジトリにはアップロードしないでください。** ZIPフォルダをそのまま１階層追加せず、`worker.js`・`wrangler.jsonc`がリポジトリ直下に置かれるようにします。
 
-デプロイ後、`https://rakuten-auto-affiliate.116kousei0428.workers.dev/api/health` の `release: "v18.2"` で反映を確認できます。CloudflareとGitHubが連携されている前提です。
+デプロイ後、`https://rakuten-auto-affiliate.116kousei0428.workers.dev/api/health` の `release: "v19"` で反映を確認できます。CloudflareとGitHubが連携されている前提です。
 
 ## v17から引き継ぐ改善
 
@@ -41,3 +41,15 @@ Cloudflare Worker名 `rakuten-auto-affiliate`、Workerのエントリポイン�
 - 保存済みのThreads下書きは勝手に書き換えません。すでに下書きがある記事でPRのON/OFFを変えたい場合は、スイッチを切り替えて「別の雑学で再生成」を押してください。投稿済みは変更しません。
 - 機能は通常の楽天アフィリエイト案件を前提に設計。楽天公式は「事業者との情報等のやり取りがない」場合のPR表記を任意としますが、商品提供・広告主との企画などではPR表記が必要です。https://affiliate.rakuten.co.jp/guideline/stealth_marketing_regulation/
 - AI記事そのものに付けているアフィリエイト注記は今回変更していません。**Threads投稿文**の生成形式だけを変更しています。
+
+## v19：Threadsへの商品写真添付（利用権限を確認した場合のみ）
+
+- Threadsの画像付き投稿はMeta公式の `POST /me/threads` に `media_type=IMAGE` + `image_url` + `text` を送り、その後 `/me/threads_publish` で公開。画像は**誰でもアクセスできるHTTPSの直接画像URL**が必要。
+- 商品の検索APIから得た写真はプレビューとして記事に関連付け（D1の新規 `article_media` テーブル）、記事公開後にThreads画面に自動表示。既存の記事・旧データ・Threadsの認証情報はそのまま。
+- **重要**：楽天アフィリエイト公式では、楽天アフィリエイトのリンク作成画面以外から取得した画像の無断ダウンロード・SNSへの転載を禁じています。楽天APIの画像URLをそのままThreadsに投稿してよいという許可は未確認なので、商品写真のThreads添付は初期OFF。利用許諾を確認した画像に限り、公開画像URLを設定して2つのチェック（権利・添付）をONにして投稿してください。無許諾の写真は添付しません。
+- 画像URLが入っていない記事は、既存の文章投稿を継続。過去のThreads投稿・記事内容を変更しません。
+- 実際のMeta画像投稿・権限・画像ホスティングはローカルでは確認できません。投稿前に実画像URLとMeta側の仕様を確認してください。
+- 画像はThreads側のAPIがURLにアクセスできる必要があります。HTMLページのURLやログイン制限付きURLでは失敗します。
+
+公式の注意事項: https://affiliate.rakuten.co.jp/know-how/susumeru/
+Meta公式API例: https://www.postman.com/meta/threads/documentation/dht3nzz/threads-api

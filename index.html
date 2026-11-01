@@ -1,10 +1,10 @@
-<!-- Rakuten AI UI v18.2, served from Worker to prevent stale public/index.html -->
+<!-- Rakuten AI UI v19, served from Worker to prevent stale public/index.html -->
 <!doctype html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>楽天商品検索・AI記事下書き｜v18.2</title>
+<title>楽天商品検索・AI記事下書き｜v19</title>
 <style>:root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#182134;background:#f4f6fa}
 *{box-sizing:border-box}main{max-width:1080px;margin:30px auto;padding:0 20px}header{margin-bottom:24px}
 h1{font-size:27px;margin:0 0 8px}h2{font-size:18px;margin:0 0 14px}p{line-height:1.65}form{display:flex;gap:10px}
@@ -37,10 +37,15 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
 .case-option input:checked+.case-switch::before{transform:translateX(18px)}
 .case-option input:focus-visible+.case-switch{outline:3px solid #86a5f9;outline-offset:3px}
 .case-option small{display:block;font-size:12px;color:#687386;margin-top:3px}
+.media-attach{background:#f7f9fc;border:1px solid #dbe3ee;border-radius:12px;padding:16px;margin:14px 0}
+.media-attach h3{font-size:16px;margin:0 0 8px}
+.media-attach>label{font-size:14px}
+.media-attach img{display:block;max-width:240px;max-height:250px;object-fit:contain;background:white;border:1px solid #ddd;border-radius:9px;margin:10px 0}
+.media-attach img[hidden]{display:none}
 </style>
 </head>
 <body><main>
-  <header><h1>楽天商品検索 ＋ AI記事作成</h1><p class="ui-version">UI v18.2 / 人気商品ピックアップ＋AI記事＋D1保存＋Threads投稿</p><p>楽天の商品データから紹介記事を作成してD1に保存し、サイトへ公開できます。内容を確認して公開してください。</p></header>
+  <header><h1>楽天商品検索 ＋ AI記事作成</h1><p class="ui-version">UI v19 / 人気商品ピックアップ＋AI記事＋D1保存＋Threads画像投稿</p><p>楽天の商品データから紹介記事を作成してD1に保存し、サイトへ公開できます。内容を確認して公開してください。</p></header>
   <section class="panel">
     <h2>① 楽天の商品を検索</h2>
     <form id="search-form">
@@ -110,6 +115,17 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
       <p class="help" id="social-meta"></p>
       <textarea id="social-text" rows="10" maxlength="500" style="width:100%;line-height:1.7" aria-label="Threads投稿文"></textarea>
       <p class="help" id="social-count">0 / 500文字</p>
+      <div class="media-attach">
+        <h3>商品写真をThreadsに添付する（任意）</h3>
+        <p class="help">楽天APIの写真は商品確認用プレビューです。API画像をそのままSNSへ転載してよいとは限りません。<strong>利用を許可された写真の公開画像URL</strong>を指定し、使用許諾を確認した場合だけ添付できます。</p>
+        <label for="social-image-url">写真の公開URL（https:// で始まる画像への直接リンク）</label>
+        <input id="social-image-url" type="url" placeholder="https://example.com/approved-product.jpg" maxlength="2000" style="display:block;width:100%;margin:7px 0" autocomplete="off">
+        <p id="image-origin-hint" class="help"></p>
+        <img id="social-image-preview" alt="添付候補の商品写真プレビュー" hidden>
+        <label class="auto-option"><input id="social-image-rights" type="checkbox"> この画像をSNSに掲載する権利・許諾を確認した</label>
+        <label class="auto-option"><input id="social-attach-image" type="checkbox"> 写真を添付して投稿する</label>
+        <p class="help">画像がない、またはチェックがOFFなら文章のみ投稿。Threadsが画像URLを取得できない場合、投稿に失敗することがあります。</p>
+      </div>
       <div class="actions"><button id="regenerate-social" type="button" class="secondary">別の雑学で再生成</button><button id="save-social" type="button">投稿文をD1に保存</button><button id="copy-social" type="button" class="secondary">投稿文をコピー</button><button id="publish-social" type="button" class="publish">Threadsへ投稿（承認後）</button></div>
     </div>
     <div class="panel" style="background:#f7f9fc">
@@ -325,7 +341,7 @@ const generateArticle = async (item, button) => {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || `記事生成に失敗しました（HTTP ${response.status}）`);
-    const draft = { id: crypto.randomUUID(), title: data.title, markdown: data.markdown, generatedAt: data.generatedAt };
+    const draft = { id: crypto.randomUUID(), title: data.title, markdown: data.markdown, generatedAt: data.generatedAt, imageUrl: safe(item.image), imageAlt: item.name.slice(0,150), imageSource:'rakuten_api_preview' };
     openDraft(draft);
     aiStatus.textContent = '記事の下書きが生成されました。内容を確認して保存してください。';
     if ($('#auto-publish-after-generate').checked) {
@@ -449,7 +465,7 @@ const saveDbCurrent = async () => {
   const exists = Boolean(currentDraft.savedToDb);
   const data = await apiRequest(exists ? `/api/drafts/${encodeURIComponent(draft.id)}` : '/api/drafts', {
     method: exists ? 'PUT' : 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({id:draft.id,title:draft.title,markdown:draft.markdown})
+    body: JSON.stringify({id:draft.id,title:draft.title,markdown:draft.markdown,imageUrl:draft.imageUrl||'',imageAlt:draft.imageAlt||'',imageSource:draft.imageSource||''})
   });
   currentDraft = {...data.draft, savedToDb:true};
   return currentDraft;
@@ -512,6 +528,18 @@ const socialList = $('#social-list');
 const socialEditor = $('#social-editor');
 const socialText = $('#social-text');
 const isSponsoredPost = $('#is-sponsored-post');
+const socialImageUrl = $('#social-image-url');
+const socialImagePreview = $('#social-image-preview');
+const socialImageRights = $('#social-image-rights');
+const socialAttachImage = $('#social-attach-image');
+function updateSocialImagePreview(){
+  const url=safe(socialImageUrl.value.trim());
+  socialImagePreview.hidden=!url;
+  if(url){socialImagePreview.src=url;}else{socialImagePreview.removeAttribute('src');}
+  $('#publish-social').textContent=socialAttachImage.checked?'写真付きでThreadsへ投稿':'Threadsへ投稿（承認後）';
+}
+socialImageUrl.addEventListener('input',()=>{socialImageRights.checked=false;socialAttachImage.checked=false;updateSocialImagePreview();});
+socialAttachImage.addEventListener('change',updateSocialImagePreview);
 // Never retain sponsored mode between visits, including back-forward cache restores.
 isSponsoredPost.checked=false;
 window.addEventListener('pageshow',()=>{isSponsoredPost.checked=false;});
@@ -519,6 +547,16 @@ let currentSocial = null;
 function openSocial(post){
   currentSocial={...post};
   socialText.value=post.body;
+  socialImageUrl.value=post.image_url||'';
+  socialImageRights.checked=false;
+  socialAttachImage.checked=false;
+  socialImageUrl.disabled=post.status!=='draft';
+  socialImageRights.disabled=post.status!=='draft';
+  socialAttachImage.disabled=post.status!=='draft';
+  $('#image-origin-hint').textContent=post.image_source==='rakuten_api_preview'
+    ? 'この写真は楽天APIから取得した商品プレビューです。SNSへの転載権限があると確認できない場合はチェックしないでください。'
+    : '過去の記事には自動保存画像がない場合があります。許諾済みの画像URLを入力できます。';
+  updateSocialImagePreview();
   socialText.disabled=post.status!=='draft';
   $('#social-meta').textContent=`投稿元記事ID: ${post.article_id} ／ 状態: ${post.status}`;
   socialEditor.hidden=false;
@@ -600,11 +638,15 @@ $('#publish-social').addEventListener('click',async()=>{
   if(socialText.value.trim()!==currentSocial.body.trim()){
     socialStatus.textContent='編集内容を先に「投稿文をD1に保存」してください。';return;
   }
-  if(!confirm('この文章をThreadsに公開しますか？外部に投稿されます。'))return;
+  const attachImage=socialAttachImage.checked;
+  const imageUrl=socialImageUrl.value.trim();
+  if(attachImage && !socialImageRights.checked){socialStatus.textContent='写真を添付する場合は、SNS掲載の権利・許諾を確認してください。';return;}
+  if(attachImage && !safe(imageUrl)){socialStatus.textContent='写真の公開URL（https://）を確認してください。';return;}
+  if(!confirm(attachImage?'写真付きでThreadsに公開しますか？商品画像の利用許諾と投稿内容を確認してください。':'この文章をThreadsに公開しますか？写真は添付されません。'))return;
   const button=$('#publish-social');button.disabled=true;
   socialStatus.textContent='Threadsへ送信中…';
   try{
-    const data=await apiRequest(`/api/social/threads/${encodeURIComponent(currentSocial.article_id)}/publish`,{method:'POST'});
+    const data=await apiRequest(`/api/social/threads/${encodeURIComponent(currentSocial.article_id)}/publish`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({attachImage,imageUrl:attachImage?imageUrl:'',imageUsageConfirmed:attachImage&&socialImageRights.checked})});
     socialStatus.textContent=data.status==='published'?'Threadsに公開しました。':'投稿結果を確認してください。';
     currentSocial.status=data.status;await loadSocial();
   }catch(e){socialStatus.textContent=e.message||'投稿できませんでした。';}

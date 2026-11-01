@@ -1,5 +1,5 @@
 export class FakeD1 {
-  constructor() { this.drafts = new Map(); this.publications = new Map(); this.threads = new Map(); this.schemaCreated = false; this.calls = []; }
+  constructor() { this.drafts = new Map(); this.publications = new Map(); this.threads = new Map(); this.media = new Map(); this.schemaCreated = false; this.calls = []; }
   get rows(){return this.drafts;} // v13 compatibility
   prepare(sql) {
     const db=this;
@@ -10,6 +10,12 @@ export class FakeD1 {
         db.calls.push({sql,bindings:args});
         if (sql.startsWith('CREATE TABLE')) { db.schemaCreated=true; return {success:true,meta:{changes:0}}; }
         if (!db.schemaCreated) throw new Error('no such table');
+        if (sql.startsWith('INSERT INTO article_media')) {
+          const [article_id,image_url,alt_text,source,updated_at]=args;
+          db.media.set(article_id,{article_id,image_url,alt_text,source,updated_at});
+          return {success:true,meta:{changes:1}};
+        }
+        if (sql.startsWith('DELETE FROM article_media')) return {meta:{changes:db.media.delete(args[0])?1:0}};
         if (sql.startsWith('INSERT INTO article_drafts')) {
           const [id,title,markdown,created_at,updated_at]=args;
           if(db.drafts.has(id)) throw new Error('UNIQUE constraint');
@@ -60,6 +66,7 @@ export class FakeD1 {
       },
       async first() {
         db.calls.push({sql,bindings:args});
+        if(sql.includes('FROM article_media')) return db.media.get(args[0])||null;
         if(sql.includes('FROM threads_posts')) return db.threads.has(args[0]) ? {...db.threads.get(args[0])} : null;
         if(sql.includes('FROM article_publications')) {
           const pub=db.publications.get(args[0]);
@@ -72,7 +79,10 @@ export class FakeD1 {
       },
       async all() {
         db.calls.push({sql,bindings:args});
-        if(sql.includes('FROM threads_posts')) return {results:[...db.threads.values()].map(x=>({...x}))};
+        if(sql.includes('FROM threads_posts')) return {results:[...db.threads.values()].map(x=>{
+          const media=db.media.get(x.article_id);
+          return {...x,image_url:media?.image_url||null,image_alt:media?.alt_text||null,image_source:media?.source||null};
+        })};
         if(sql.includes('FROM article_publications')) return {results:[...db.publications.values()].sort((a,b)=>b.published_at.localeCompare(a.published_at)).slice(0,50).map(x=>({...x}))};
         return {results:[...db.drafts.values()].sort((a,b)=>b.updated_at.localeCompare(a.updated_at)).slice(0,100).map(d=>({...d,published_at:db.publications.get(d.id)?.published_at||null}))};
       }
