@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import worker from '../worker.js';
+import {readFileSync} from 'node:fs';
 import { FakeD1 } from './fake-d1.mjs';
 const id='223e4567-e89b-42d3-a456-426614174001';
 const key='test-admin-key';
@@ -64,7 +65,7 @@ test('no image selected continues the legacy TEXT path',async()=>{
  }finally{globalThis.fetch=old;}
 });
 test('v20 UI displays image-preview and rights checks, still defaults to text',async()=>{
- const html=await (await req(env(),'/')).text();
+ const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
  assert.match(html,/余談商店/);assert.match(html,/id="social-image-url"/);assert.match(html,/id="social-image-rights"/);assert.match(html,/id="social-attach-image"/);
  assert.match(html,/楽天APIの写真は商品確認用プレビュー/);
  assert.match(html,/socialImageRights\.checked=false/);

@@ -36,7 +36,8 @@ test('main admin UI keeps existing functional IDs and original deployment target
  assert.equal(config.name,'rakuten-auto-affiliate');
  assert.equal(config.d1_databases[0].database_id,'81926891-4dd8-4cc2-b966-e530d2912452');
  assert(existsSync('public/yodan-logo.webp'));
- const html=await (await worker.fetch(new Request('https://example.com/'),env())).text();
- for (const id of ['keyword','load-ranking','show-editor-picks','admin-token','publish-current','load-db-drafts','is-sponsored-post','social-image-url','social-image-rights','publish-social']) assert(html.includes(`id="${id}"`),id);
- assert.match(html,/商店の店先を開く/);
+ const html=readFileSync('public/index.html','utf8');
+ for (const id of ['keyword','load-ranking','show-editor-picks','publish-current','load-db-drafts','is-sponsored-post','social-image-url','social-image-rights','publish-social']) assert(html.includes(`id="${id}"`),id);
+ assert.match(html,/商店の店先/);
+ assert.equal((await worker.fetch(new Request('https://example.com/admin'),env())).status,303);
 });

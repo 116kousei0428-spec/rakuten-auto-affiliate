@@ -16,28 +16,28 @@ test('health checks presence without revealing secrets', async () => {
   const payload = await r.json();
   assert.equal(r.status, 200);
   assert.equal(payload.apiConfigured, true);
-  assert.equal(payload.release, 'v20');
+  assert.equal(payload.release, 'v21');
   assert.ok(!JSON.stringify(payload).includes('app-private'));
   assert.ok(!JSON.stringify(payload).includes('access-private'));
 });
 test('missing keys returns 503', async () => {
   assert.equal((await search(undefined, { ASSETS: assets })).status, 503);
 });
-test('root renders the AI interface from worker (not stale assets)', async () => {
-  const r = await worker.fetch(new Request('https://site.test/'), env);
-  assert.equal(r.status, 200);
-  assert.equal(r.headers.get('X-Rakuten-UI-Version'), 'v20');
-  assert.equal(r.headers.get('Cache-Control'), 'no-store, max-age=0');
-  const html = await r.text();
-  assert.match(html, /記事をつくる/);
-  assert.match(html, /記事をつくる/);
-  assert.match(html, /<script>/);
-  assert.match(html, /id=\"admin-token\"/);
+test('root renders public product browsing without the private editor',async()=>{
+ const r=await worker.fetch(new Request('https://site.test/'),env);
+ assert.equal(r.status,200);
+ assert.equal(r.headers.get('X-Rakuten-UI-Version'),'v21');
+ assert.equal(r.headers.get('Cache-Control'),'no-store');
+ const html=await r.text();
+ assert.match(html,/id="search-form"/);
+ assert.match(html,/id="admin-entry"/);
+ assert.doesNotMatch(html,/id="admin-token"|id="draft-text"|id="social-text"/);
 });
-test('index.html routes to the same worker UI', async () => {
-  const r = await worker.fetch(new Request('https://site.test/index.html'), env);
-  assert.equal(r.status, 200);
-  assert.equal(r.headers.get('X-Rakuten-UI-Version'), 'v20');
+test('index.html routes to same public view',async()=>{
+ const r=await worker.fetch(new Request('https://site.test/index.html'),env);
+ assert.equal(r.status,200);
+ assert.equal(r.headers.get('X-Rakuten-UI-Version'),'v21');
+ assert.match(await r.text(),/id="admin-entry"/);
 });
 test('non-home static requests go to assets', async () => {
   const r = await worker.fetch(new Request('https://site.test/non-home-test.css'), env);
@@ -183,8 +183,8 @@ test('AI endpoint requires POST', async () => {
 });
 test('AI endpoint is disabled without admin secret', async () => {
   const r = await worker.fetch(articleRequest(), { ...adminEnv, AI_ADMIN_TOKEN: undefined });
-  assert.equal(r.status, 503);
-  assert.equal((await r.json()).errorCode, 'ADMIN_NOT_CONFIGURED');
+  assert.equal(r.status, 401);
+  assert.equal((await r.json()).error, '管理者ログインが必要です。');
 });
 test('AI endpoint rejects wrong token without inference', async () => {
   let called = false;

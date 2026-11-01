@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import worker from '../worker.js';
+import {readFileSync} from 'node:fs';
 import { FakeD1 } from './fake-d1.mjs';
 const id='123e4567-e89b-42d3-a456-426614174000';
 const admin='threads-test-very-long-secret';
@@ -89,7 +90,7 @@ test('unknown Threads outcome is not retried automatically',async()=>{
 });
 
 test('UI v20 has a visible generation action on published article list, and inline syntax is valid',async()=>{
- const env=e(); const res=await req(env,'/'); const html=await res.text();
+ const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
  assert.match(html,/余談商店/);
  assert.match(html,/雑学→Threads投稿文/);
  assert.match(html,/Threadsへ投稿（承認後）/);
@@ -149,16 +150,13 @@ test('Threads connection diagnostic is admin-only, does not expose token, tests 
  }finally{globalThis.fetch=old;}
 });
 
-test('UI offers opt-in local key retention, deletion, regeneration and connection check',async()=>{
- const html=await (await req(e(),'/')).text();
- assert.match(html,/id="remember-admin-token"/);
- assert.match(html,/id="forget-admin-token"/);
- assert.match(html,/localStorage\.removeItem\(ADMIN_KEY_STORAGE\)/);
+test('UI hides the old admin key and preserves Threads publishing tools after login',async()=>{
+ const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+ assert.doesNotMatch(html,/id="admin-token"|remember-admin-token|forget-admin-token/);
  assert.match(html,/id="regenerate-social"/);
  assert.match(html,/id="check-threads-connection"/);
- assert.match(html,/共有端末では保存しないでください/);
+ assert.match(html,/action="\/admin\/logout"/);
 });
-
 
 test('moon light selects moon-specific facts before generic lighting without PR by default',async()=>{
  const env=e();
@@ -227,7 +225,7 @@ test('default off and invalid sponsored settings are rejected',async()=>{
 });
 
 test('sponsored toggle is visible unchecked and wired to both generation requests',async()=>{
- const html=await(await req(e(),'/')).text();
+ const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
  assert.match(html,/id="is-sponsored-post" type="checkbox" autocomplete="off"/);
  assert.match(html,/isPromotion:isSponsoredPost\.checked/g);
  assert.doesNotMatch(html,/id="is-sponsored-post"[^>]*checked/);

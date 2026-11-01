@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>余談商店の作業台｜商品と読みもの</title>
+<title>余談商店｜管理者の作業台</title><link rel="icon" href="/yodan-logo.webp" type="image/webp">
 <meta name="theme-color" content="#f8f3e8">
 <meta name="description" content="余談商店の作業台。商品探し、記事づくり、Threads投稿文づくりをひとつの場所で。">
 <style>
@@ -27,18 +27,18 @@ form{display:flex;align-items:center;gap:12px}form input{flex:1;min-height:49px}
 @media(max-width:850px){.hero-logo{width:160px;height:160px;right:4%;opacity:.88}.hero{padding:36px 32px}.hero .hero-desc{max-width:440px}.hero h1{font-size:40px}}
 @media(max-width:620px){main{padding:0 14px 35px}.topbar{padding:12px 0}.brand-mini{font-size:13px}.brand-mini img{height:38px;width:38px}.topbar-links a{padding:7px 10px;font-size:11px}.hero{border-radius:23px;min-height:260px;padding:29px 21px 26px}.hero-logo{width:95px;height:95px;right:13px;top:23px;transform:rotate(9deg);border-width:3px}.hero h1{font-size:35px;max-width:230px}.hero .tagline{font-size:15px}.hero .hero-desc{font-size:12px;padding-right:6px}.hero .eyebrow{font-size:10px}.quick-nav{gap:7px;margin:16px 0}.quick-nav a{font-size:11px;padding:8px 12px}.panel{border-radius:20px;padding:19px 16px;margin:15px 0}.panel-heading{gap:9px}.section-icon{width:40px;height:40px;font-size:21px;border-radius:12px}h2{font-size:21px}form{flex-direction:column;align-items:stretch}form input{min-height:45px}.settings{grid-template-columns:1fr;gap:7px}.grid{grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:11px}.item{padding:11px;gap:8px;border-radius:17px}.item img{height:137px}.item h2{font-size:12px}.price{font-size:17px}.item .generate,.item a{font-size:12px;padding:9px}.picks-topics{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.pick-topic{padding:12px;min-height:130px}.pick-topic strong{font-size:13px}.pick-topic span{font-size:11px}.draft-row{align-items:flex-start}.footer{margin-top:30px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}button,.item,.quick-nav a{transition:none!important}}
-</style>
+.topbar-links form{margin:0}.topbar-links form button{min-height:auto;min-width:0;padding:8px 14px}.topbar-links{justify-content:flex-end}</style>
 </head>
 <body><main>
   <div class="topbar">
     <a href="#top" class="brand-mini"><img src="/yodan-logo.webp" alt="余談商店の猫のロゴ"><span>余談商店 <span style="font-size:10px;color:#a47d55">YODAN SHOTEN</span></span></a>
-    <div class="topbar-links"><a href="/shop" target="_blank" rel="noopener">☕ 商店の店先を開く</a><a href="/articles" target="_blank" rel="noopener">📖 読みもの</a></div>
+    <div class="topbar-links"><a href="/" target="_blank" rel="noopener">☕ 商店の店先</a><a href="/articles" target="_blank" rel="noopener">📖 読みもの</a><form action="/admin/logout" method="post"><button class="small secondary" type="submit">ログアウト</button></form></div>
   </div>
   <header class="hero" id="top">
     <p class="eyebrow">YODAN SHOTEN ・ LITTLE CURIO SHOP</p>
     <h1>余談商店</h1><p class="tagline">知れば、ちょっと欲しくなる。</p>
     <p class="hero-desc">いつもの暮らしに、小さな発見を。<br>気になるものを見つけて、読みものにして、誰かへ届けよう。</p>
-    <span class="hero-stamp">✦ 商店の作業台 ・ v20</span>
+    <span class="hero-stamp">✦ 商店の作業台 ・ v21</span>
     <img class="hero-logo" src="/yodan-logo.webp" alt="本と猫の余談商店ロゴ">
   </header>
   <nav class="quick-nav" aria-label="作業台のメニュー"><span class="nav-lead">棚をめぐる ↗</span><a href="#search-section">🔎 商品さがし</a><a href="#picks-section">🌿 商店おすすめ</a><a href="#article-settings">📝 記事づくり</a><a href="#saved-articles">📚 記事の棚</a><a href="#threads-section">🧵 投稿づくり</a></nav>
@@ -67,18 +67,9 @@ form{display:flex;align-items:center;gap:12px}form input{flex:1;min-height:49px}
   <section class="panel controls" id="article-settings" aria-label="記事作成の設定">
     <div class="panel-heading"><span class="section-icon" aria-hidden="true">📝</span><div><small class="section-kicker">WRITE A LITTLE STORY</small><h2>記事をつくる</h2></div></div>
     <p class="help">商品カードから「記事をつくる」を押すと、AIが紹介文の下書きを作ります。文章を確認してから公開できます。</p>
-    <div class="settings">
-      <label for="admin-token">管理者キー（CloudflareのAI_ADMIN_TOKEN）</label>
-      <input type="password" id="admin-token" placeholder="管理者キーを入力" autocomplete="off">
-      <span class="help">保存の設定</span>
-      <div><label class="auto-option" style="margin:0"><input id="remember-admin-token" type="checkbox"> この端末に管理者キーを保存する</label>
-      <button id="forget-admin-token" type="button" class="secondary small" style="margin-top:8px">保存したキーを削除</button>
-      <p id="admin-storage-status" class="help" role="status"></p></div>
-      <label for="tone">文体</label>
-      <select id="tone"><option>標準</option><option>比較検討</option><option>初心者向け</option></select>
-    </div>
+    <div class="settings"><label for="tone">文体</label><select id="tone"><option>標準</option><option>比較検討</option><option>初心者向け</option></select></div>
     <label class="auto-option"><input type="checkbox" id="auto-publish-after-generate"> AI記事生成後、D1に自動保存してそのまま公開（初期OFF）</label>
-    <p class="help">公開前の事実確認を推奨。AI生成内容をそのまま公開すると誤記載の恐れがあります。管理者キーの端末保存は任意で、同じ端末のブラウザ内から読み取られるリスクがあります。共有端末では保存しないでください。</p>
+    <p class="help">公開前の事実確認を推奨。AI生成内容をそのまま公開すると誤記載の恐れがあります。</p>
     <p id="ai-status" role="status"></p>
   </section>
   <section id="results" class="grid" aria-label="検索結果"></section>
@@ -139,7 +130,7 @@ form{display:flex;align-items:center;gap:12px}form input{flex:1;min-height:49px}
     <p class="help">旧版の下書きは削除せず残しています。「開く」→「D1に保存・更新」で移行できます。</p>
     <div id="draft-list" class="draft-list"></div>
   </section>
-  <footer class="footer"><div class="footer-brand">🐈 余談商店 / YODAN SHOTEN</div><p>知れば、ちょっと欲しくなる。<br>掲載情報は公開前に確認してください。価格・仕様は楽天市場の商品ページで再確認を。管理操作は管理者キーで保護されています。</p><p><a href="/shop" target="_blank" rel="noopener">商店の店先を見る</a> ・ <a href="/articles" target="_blank" rel="noopener">公開中の読みもの</a></p></footer>
+  <footer class="footer"><div class="footer-brand">🐈 余談商店 / YODAN SHOTEN</div><p>知れば、ちょっと欲しくなる。<br>掲載情報は公開前に確認してください。価格・仕様は楽天市場の商品ページで再確認を。この作業台は管理者ログインで保護されています。</p><p><a href="/shop" target="_blank" rel="noopener">商店の店先を見る</a> ・ <a href="/articles" target="_blank" rel="noopener">公開中の読みもの</a></p></footer>
 </main><script>const $ = (selector) => document.querySelector(selector);
 const form = $('#search-form');
 const status = $('#status');
@@ -153,64 +144,11 @@ const draftList = $('#draft-list');
 const dbList = $('#db-list');
 const dbStatus = $('#db-status');
 const publishStatus = $('#publish-status');
-const ADMIN_KEY_STORAGE = 'rakuten_admin_token_optional_v16';
-const adminTokenInput = $('#admin-token');
-const adminRemember = $('#remember-admin-token');
-const adminStorageStatus = $('#admin-storage-status');
-const forgetAdminToken = () => {
-  try { localStorage.removeItem(ADMIN_KEY_STORAGE); } catch {}
-  adminRemember.checked = false;
-};
-try {
-  const remembered = localStorage.getItem(ADMIN_KEY_STORAGE);
-  if (remembered) {
-    adminTokenInput.value = remembered;
-    adminRemember.checked = true;
-    adminStorageStatus.textContent = 'この端末に保存したキーを自動入力しました。';
-  }
-} catch { adminStorageStatus.textContent = '端末の保存領域を利用できません。'; }
-adminRemember.addEventListener('change', () => {
-  if (adminRemember.checked) {
-    if (!adminTokenInput.value.trim()) {
-      adminRemember.checked = false;
-      adminStorageStatus.textContent = '先に管理者キーを入力してください。';
-      return;
-    }
-    try {
-      localStorage.setItem(ADMIN_KEY_STORAGE, adminTokenInput.value.trim());
-      adminStorageStatus.textContent = 'この端末に保存しました。共有端末では使用しないでください。';
-    } catch {
-      adminRemember.checked = false;
-      adminStorageStatus.textContent = 'この端末には保存できませんでした。';
-    }
-  } else {
-    forgetAdminToken();
-    adminStorageStatus.textContent = '保存したキーを削除しました（入力欄は維持）。';
-  }
-});
-adminTokenInput.addEventListener('input', () => {
-  if (!adminRemember.checked) return;
-  if (!adminTokenInput.value.trim()) {
-    forgetAdminToken();
-    adminStorageStatus.textContent='キーを削除しました。';
-    return;
-  }
-  try { localStorage.setItem(ADMIN_KEY_STORAGE, adminTokenInput.value.trim()); }
-  catch { forgetAdminToken();adminStorageStatus.textContent='キーを保存できません。'; }
-});
-$('#forget-admin-token').addEventListener('click', () => {
-  forgetAdminToken();
-  adminTokenInput.value='';
-  adminStorageStatus.textContent='保存したキーと入力欄を削除しました。';
-  adminTokenInput.focus();
-});
-const adminHeaders = () => ({ 'X-Admin-Token': $('#admin-token').value.trim() });
-const requireToken = () => {
-  if ($('#admin-token').value.trim()) return true;
-  dbStatus.textContent = '管理者キーを入力してください。';
-  $('#admin-token').focus();
-  return false;
-};
+// Remove any legacy locally stored admin token from previous versions.
+try { localStorage.removeItem('rakuten_admin_token_optional_v16'); } catch {}
+// The /admin page is served only after validating a signed, HttpOnly session cookie.
+const adminHeaders = () => ({});
+const requireToken = () => true;
 const yen = (n) => typeof n === 'number' ? `${n.toLocaleString('ja-JP')}円` : '価格未取得';
 const safe = (value) => { try { const u = new URL(value); return u.protocol === 'https:' ? u.href : ''; } catch { return ''; } };
 const setStatus = (message) => { status.textContent = message; };
@@ -327,14 +265,12 @@ $('#load-db-drafts').addEventListener('click', loadDbDrafts);
 
 const generateArticle = async (item, button) => {
   if (aiBusy) return;
-  const token = $('#admin-token').value.trim();
-  if (!token) { aiStatus.textContent = 'Cloudflareに設定した管理者キーを入力してください。'; $('#admin-token').focus(); return; }
   aiBusy = true;
   button.disabled = true;
   aiStatus.textContent = `「${item.name.slice(0, 25)}」の記事を生成中…`;
   try {
     const response = await fetch('/api/articles/generate', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ item, tone: $('#tone').value })
     });
     const data = await response.json().catch(() => ({}));
@@ -458,7 +394,6 @@ rankingButton.addEventListener('click', async () => {
 
 const saveDbCurrent = async () => {
   if (!currentDraft) throw new Error('記事が選択されていません。');
-  if (!$('#admin-token').value.trim()) throw new Error('管理者キーが必要です。');
   const draft = { ...currentDraft, markdown: draftText.value };
   const exists = Boolean(currentDraft.savedToDb);
   const data = await apiRequest(exists ? `/api/drafts/${encodeURIComponent(draft.id)}` : '/api/drafts', {

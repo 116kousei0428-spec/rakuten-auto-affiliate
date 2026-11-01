@@ -1,0 +1,172 @@
+<!-- Yodan Shoten v20: brand refresh; behavior based on v19 -->
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>余談商店｜知れば、ちょっと欲しくなる。</title>
+<meta name="theme-color" content="#f8f3e8"><link rel="icon" href="/yodan-logo.webp" type="image/webp">
+<meta name="description" content="余談商店の作業台。商品探し、記事づくり、Threads投稿文づくりをひとつの場所で。">
+<style>
+:root{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,system-ui,sans-serif;--ink:#333d30;--muted:#7d8577;--paper:#fffdf8;--cream:#f8f4e9;--linen:#f1e8d7;--border:#e8dec9;--forest:#557257;--deep:#35543c;--mint:#e7eee0;--peach:#e9a36c;--blue:#576f78;--shadow:0 12px 30px rgba(75,68,46,.065);color:var(--ink);background:var(--cream);scroll-behavior:smooth}
+*{box-sizing:border-box}html{scroll-padding-top:95px}body{margin:0;background:radial-gradient(circle at 8% 7%,#fdf7e6 0,transparent 30%),radial-gradient(circle at 90% 23%,#edf0e5 0,transparent 27%),var(--cream)}[hidden]{display:none!important}
+a{color:var(--deep);text-decoration-color:#a5b396;text-underline-offset:4px}a:hover{color:#9b5d35}
+button,input,textarea,select{font:inherit}button{border:1px solid transparent;border-radius:999px;background:var(--deep);color:#fff;padding:12px 20px;font-size:14px;line-height:1.45;font-weight:700;cursor:pointer;box-shadow:0 3px 0 rgba(36,66,44,.15);transition:background .17s,transform .17s,box-shadow .17s}button:hover:not(:disabled){background:#486c4e;transform:translateY(-1px);box-shadow:0 6px 12px #3f593026}button:disabled{opacity:.5;cursor:wait}button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #edb87d;outline-offset:3px}
+input:not([type=checkbox]),select,textarea{background:#fffefa;border:1px solid #d9cfb9;border-radius:14px;padding:12px 14px;color:var(--ink);font-size:15px;min-width:0;box-shadow:inset 0 1px 2px #554b3010}textarea{width:100%;line-height:1.8}input::placeholder,textarea::placeholder{color:#a7aa9d}input[type=checkbox]{accent-color:var(--forest)}
+main{max-width:1160px;margin:0 auto;padding:0 26px 50px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:19px 0}.brand-mini{display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--deep);font-weight:900;letter-spacing:.07em;font-size:16px}.brand-mini img{height:45px;width:45px;border-radius:50%;box-shadow:0 2px 8px #6c5b3426}.topbar-links{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.topbar-links a{border:1px solid #d8dfce;background:#fafff5;border-radius:999px;padding:9px 15px;font-size:12px;text-decoration:none;font-weight:700;white-space:nowrap}
+header.hero{overflow:hidden;position:relative;isolation:isolate;background:linear-gradient(117deg,#355440,#59755c 68%,#72896d);border:1px solid #34573f;border-radius:32px;padding:45px 48px 47px;color:#f9f7ed;box-shadow:0 20px 38px #394f402c;margin-bottom:23px;min-height:280px}.hero:before{content:'';position:absolute;right:-120px;top:-160px;width:490px;height:490px;border:1px solid #ffffff30;border-radius:50%;box-shadow:0 0 0 55px #ffffff0a,0 0 0 100px #ffffff08;z-index:-1}.hero .eyebrow{font-size:12px;letter-spacing:.23em;font-weight:700;opacity:.82;margin:0 0 14px}.hero h1{font-family:'Yu Mincho','Hiragino Mincho ProN',serif;font-size:clamp(31px,5vw,54px);font-weight:800;letter-spacing:.16em;line-height:1.35;margin:0 0 12px}.hero .tagline{font-size:18px;font-weight:700;letter-spacing:.08em;margin:0 0 15px}.hero .hero-desc{font-size:14px;line-height:1.9;max-width:510px;opacity:.9;margin:0}.hero-logo{position:absolute;right:7%;top:50%;transform:translateY(-50%) rotate(7deg);width:220px;height:220px;object-fit:cover;border-radius:50%;border:6px solid #fff8dc;box-shadow:0 12px 35px #192a1b55}.hero-stamp{display:inline-block;margin-top:19px;padding:6px 16px;border:1px solid #f6f3e7a8;border-radius:999px;font-size:11px;letter-spacing:.08em}
+.quick-nav{display:flex;align-items:center;gap:11px;flex-wrap:wrap;margin:20px 0 24px}.quick-nav a{background:#fffdf7;border:1px solid var(--border);padding:10px 18px;border-radius:999px;text-decoration:none;font-size:13px;font-weight:700;color:var(--forest);transition:all .15s}.quick-nav a:hover{background:var(--mint);transform:translateY(-1px)}.quick-nav .nav-lead{font-size:12px;color:var(--muted);font-weight:700;margin-right:3px}
+.page-intro{display:flex;align-items:center;gap:9px;color:#818475;font-size:12px;margin:2px 0 18px}.page-intro:before{content:'✦';color:var(--peach)}
+h1,h2,h3{overflow-wrap:anywhere}h2{font-family:'Yu Mincho','Hiragino Mincho ProN',serif;font-size:clamp(21px,2.5vw,26px);font-weight:800;letter-spacing:.045em;color:var(--deep);margin:0 0 14px}h3{color:var(--deep)}p{line-height:1.8}.panel{position:relative;background:var(--paper);border:1px solid var(--border);border-radius:24px;padding:26px 30px;margin:20px 0;box-shadow:var(--shadow)}.panel-heading{display:flex;align-items:center;gap:12px;margin:0 0 8px}.section-icon{display:grid;place-items:center;flex:none;font-size:24px;background:#f2ebdc;border:1px solid #eadfc9;border-radius:15px;width:50px;height:50px}.panel-heading h2{margin:0}.section-kicker{color:#b3835d;font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;display:block;margin-bottom:4px}.help{color:#7d8175;font-size:12px;line-height:1.8;margin:10px 0}.subtle{font-size:12px;color:var(--muted)}.settings{display:grid;grid-template-columns:200px minmax(0,1fr);align-items:center;gap:13px 18px;max-width:790px;margin-top:18px}.settings label{font-size:13px;font-weight:700}.settings>span.help{font-weight:700}.status-line,#status,#ai-status,#db-status,#picks-status,#social-status{font-size:13px;overflow-wrap:anywhere}#status,#ai-status{color:var(--forest);font-weight:700;white-space:pre-wrap}
+form{display:flex;align-items:center;gap:12px}form input{flex:1;min-height:49px}form button{min-height:48px;min-width:110px}.search-panel{background:linear-gradient(116deg,#fffdfa 25%,#f4f2e7)}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:15px}.secondary{background:#ecf0e6;color:var(--deep);border-color:#d9e3d2;box-shadow:none}.secondary:hover:not(:disabled){background:#dce7d5}.small{padding:7px 14px;font-size:12px}.publish{background:var(--forest)}.new-mark{font:700 10px/1.5 system-ui,sans-serif;background:#fbefdf;color:#a46e3a;padding:4px 9px;border-radius:999px;vertical-align:middle;letter-spacing:.06em}.auto-option{display:flex;align-items:center;gap:9px;margin-top:15px;font-size:13px}.auto-option input{height:17px;width:17px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px;margin:18px 0 25px}.item{min-width:0;background:var(--paper);border:1px solid var(--border);border-radius:22px;padding:15px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow);transition:transform .15s,box-shadow .15s}.item:hover{transform:translateY(-3px);box-shadow:0 16px 29px #50473519}.item img{display:block;width:100%;height:185px;object-fit:contain;background:#faf8f0;border-radius:15px;padding:8px}.item h2{font:700 14px/1.7 'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;letter-spacing:0;margin:0;color:var(--ink);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.price{color:#a2643b;font-size:21px;font-weight:900}.shop{color:var(--muted);font-size:12px}.item a{border:1px solid #d8dfd2;border-radius:999px;background:#eef3eb;color:var(--deep);text-decoration:none;text-align:center;padding:10px;font-size:13px;margin-top:auto}.item .generate{width:100%}
+.picks-topics{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:12px;margin-top:16px}.pick-topic{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:8px;background:#fcfbf6;color:var(--ink);border:1px solid var(--border);border-radius:17px;padding:18px;text-align:left;min-height:127px;box-shadow:none}.pick-topic strong{font-size:15px}.pick-topic span{font-size:12px;color:var(--muted);line-height:1.65}.pick-topic:hover:not(:disabled){background:#f2f6ed;border-color:#9fae99;box-shadow:none}.pick-rank{background:#f5e9d8;color:#985d38;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:800;align-self:flex-start}
+#draft-text{display:block;min-height:310px;resize:vertical;font-size:14px}#social-text{background:#fffdf7;min-height:220px}.draft-row{display:flex;align-items:center;gap:10px;border-bottom:1px dashed #e5dbca;padding:14px 0;flex-wrap:wrap}.draft-row span{flex:1 1 260px;font-size:13px;line-height:1.6;overflow-wrap:anywhere}.pub-link{font-size:12px;overflow-wrap:anywhere}
+.case-option{display:inline-flex;align-items:center;gap:10px;border:1px solid #d9dfd1;border-radius:16px;background:#f6f9f1;padding:13px 18px;margin-top:12px;cursor:pointer;user-select:none}.case-option input{position:absolute;opacity:0;width:1px;height:1px}.case-switch{width:44px;height:25px;border-radius:99px;background:#b4bbae;position:relative;flex-shrink:0;transition:background .15s}.case-switch:before{content:'';position:absolute;top:3px;left:3px;width:19px;height:19px;background:white;border-radius:50%;transition:transform .15s;box-shadow:0 2px 4px #0002}.case-option input:checked+.case-switch{background:var(--forest)}.case-option input:checked+.case-switch:before{transform:translateX(19px)}.case-option input:focus-visible+.case-switch{outline:3px solid #e6b178;outline-offset:3px}.case-option small{display:block;font-size:12px;color:var(--muted);margin-top:3px}.media-attach{background:#f8f9f3;border:1px dashed #c9d7bd;border-radius:18px;padding:20px;margin:18px 0}.media-attach h3{font-size:16px;margin:0 0 10px}.media-attach>label{font-size:13px}.media-attach img{display:block;max-width:250px;max-height:250px;object-fit:contain;background:white;border:1px solid #e0ddcf;border-radius:14px;margin:12px 0}
+.mini-panel{background:#f3f6ee;border:1px solid #dfe6d7;border-radius:17px;padding:18px;margin-top:18px}.mini-panel h3{margin:0 0 8px;font-size:15px}.footer{border-top:1px solid #e9dfcd;margin-top:42px;padding:24px 0;color:var(--muted);font-size:12px;line-height:1.9}.footer-brand{font-weight:800;color:var(--forest);font-size:14px}.footer a{font-size:12px}
+@media(max-width:850px){.hero-logo{width:160px;height:160px;right:4%;opacity:.88}.hero{padding:36px 32px}.hero .hero-desc{max-width:440px}.hero h1{font-size:40px}}
+@media(max-width:620px){main{padding:0 14px 35px}.topbar{padding:12px 0}.brand-mini{font-size:13px}.brand-mini img{height:38px;width:38px}.topbar-links a{padding:7px 10px;font-size:11px}.hero{border-radius:23px;min-height:260px;padding:29px 21px 26px}.hero-logo{width:95px;height:95px;right:13px;top:23px;transform:rotate(9deg);border-width:3px}.hero h1{font-size:35px;max-width:230px}.hero .tagline{font-size:15px}.hero .hero-desc{font-size:12px;padding-right:6px}.hero .eyebrow{font-size:10px}.quick-nav{gap:7px;margin:16px 0}.quick-nav a{font-size:11px;padding:8px 12px}.panel{border-radius:20px;padding:19px 16px;margin:15px 0}.panel-heading{gap:9px}.section-icon{width:40px;height:40px;font-size:21px;border-radius:12px}h2{font-size:21px}form{flex-direction:column;align-items:stretch}form input{min-height:45px}.settings{grid-template-columns:1fr;gap:7px}.grid{grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:11px}.item{padding:11px;gap:8px;border-radius:17px}.item img{height:137px}.item h2{font-size:12px}.price{font-size:17px}.item .generate,.item a{font-size:12px;padding:9px}.picks-topics{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.pick-topic{padding:12px;min-height:130px}.pick-topic strong{font-size:13px}.pick-topic span{font-size:11px}.draft-row{align-items:flex-start}.footer{margin-top:30px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}button,.item,.quick-nav a{transition:none!important}}
+
+.owner-entry{margin:27px auto 0;max-width:355px;border-top:1px solid #dedbcf;padding:15px 0 0;text-align:center;font-size:11px;color:#969489}
+.owner-entry summary{display:inline-block;cursor:pointer;list-style:none;text-decoration:underline;text-underline-offset:4px}.owner-entry summary::-webkit-details-marker{display:none}
+.owner-login{margin:16px 0 0;padding:17px;border:1px solid #e8dec9;background:#fffdf9;border-radius:15px;display:flex;flex-direction:column;gap:10px;text-align:left}.owner-login label{font-size:12px;color:var(--deep)}.owner-login input{min-width:0;width:100%}.owner-login button{align-self:flex-end}.owner-login-error{color:#a34336;font-size:12px}
+</style>
+</head>
+<body><main>
+  <div class="topbar">
+    <a href="#top" class="brand-mini"><img src="/yodan-logo.webp" alt="余談商店の猫のロゴ"><span>余談商店 <span style="font-size:10px;color:#a47d55">YODAN SHOTEN</span></span></a>
+    <div class="topbar-links"><a href="/shop">☕ 商店の読みもの</a><a href="/articles">📖 記事一覧</a></div>
+  </div>
+  <header class="hero" id="top">
+    <p class="eyebrow">YODAN SHOTEN ・ LITTLE CURIO SHOP</p>
+    <h1>余談商店</h1><p class="tagline">知れば、ちょっと欲しくなる。</p>
+    <p class="hero-desc">いつもの暮らしに、小さな発見を。<br>気になるものを見つけたら、お気に入りの一品を探してみよう。</p>
+    <span class="hero-stamp">✦ 小さな発見のお店</span>
+    <img class="hero-logo" src="/yodan-logo.webp" alt="本と猫の余談商店ロゴ">
+  </header>
+  <nav class="quick-nav" aria-label="お店のメニュー"><span class="nav-lead">棚をめぐる ↗</span><a href="#search-section">🔎 商品さがし</a><a href="#picks-section">🌿 商店おすすめ</a><a href="/shop">📚 商店の読みもの</a></nav>
+  <p class="page-intro">ようこそ。今日はどんな面白いものに出会えるかな？</p>
+  <section class="panel search-panel" id="search-section">
+    <div class="panel-heading"><span class="section-icon" aria-hidden="true">🔎</span><div><small class="section-kicker">FIND SOMETHING NICE</small><h2>商品をさがす</h2></div></div>
+    <p class="help">気になる名前を入れて、今日の一品を見つけよう。</p>
+    <form id="search-form">
+      <input id="keyword" name="keyword" placeholder="商品を検索（例：ワイヤレスイヤホン）" maxlength="100" required>
+      <button type="submit">検索</button>
+    </form>
+    <p id="status" role="status">API接続を確認中…</p>
+  </section>
+  <section class="panel" id="picks-section">
+    <div class="panel-heading"><span class="section-icon" aria-hidden="true">🌿</span><div><small class="section-kicker">THE SHOPKEEPER'S PICKS</small><h2>人気のもの・商店おすすめ <span class="new-mark">PICK UP</span></h2></div></div>
+    <p class="help">人気商品は楽天市場の公式ランキングAPIから取得します。商店おすすめは独自の編集候補で、売上順位や今後の流行を保証するものではありません。</p>
+    <div class="actions" style="margin-top:12px">
+      <button id="load-ranking" type="button">楽天ランキングを見る</button>
+      <button id="show-editor-picks" class="secondary" type="button">商店おすすめを見る</button>
+    </div>
+    <p id="picks-status" class="help" role="status">まずはランキングを見るか、注目テーマを選んでください。</p>
+    <div id="editor-picks" class="picks-topics" hidden></div>
+    <div id="pick-results" class="grid" aria-label="ピックアップされた楽天商品"></div>
+    <p class="help" id="picks-attribution" hidden>ランキングの出典：楽天市場 商品ランキングAPI。楽天側の更新時刻・掲載状況により順位や価格は変わります。</p>
+  </section>
+  <section id="results" class="grid" aria-label="楽天の商品検索結果"></section>
+  <section class="panel" aria-label="商店の読みもの"><div class="panel-heading"><span class="section-icon" aria-hidden="true">📖</span><h2>商店の読みもの</h2></div><p class="help">気になった商品のことを、少しだけ深く。余談商店の読みものをどうぞ。</p><p><a href="/shop">公開中の読みものを見に行く →</a></p></section>
+  <footer class="footer"><div class="footer-brand">🐈 余談商店 / YODAN SHOTEN</div><p>知れば、ちょっと欲しくなる。<br>商品情報・価格・在庫は楽天市場でお確かめください。</p><p><a href="/shop">商店の読みもの</a> ・ <a href="/articles">記事一覧</a></p>
+    <details class="owner-entry" id="admin-entry"><summary>管理者</summary>
+      <form class="owner-login" action="/admin/login" method="post" autocomplete="off"><label for="admin-password">管理者パスワード</label><input type="password" id="admin-password" name="password" required maxlength="256" autocomplete="current-password"><button type="submit" class="small">ログイン</button></form><p class="owner-login-error" id="owner-login-error" hidden>ログインできませんでした。入力内容を確認してください。</p>
+    </details>
+  </footer>
+</main><script>const $=(selector)=>document.querySelector(selector);
+const form=$('#search-form'),status=$('#status'),results=$('#results');
+const pickResults=$('#pick-results'),picksStatus=$('#picks-status'),editorPicks=$('#editor-picks');
+const pickAttribution=$('#picks-attribution'),rankingButton=$('#load-ranking'),editorButton=$('#show-editor-picks');
+const yen=(n)=>typeof n==='number'?`${n.toLocaleString('ja-JP')}円`:'価格未取得';
+const safe=(value)=>{try{const u=new URL(value);return u.protocol==='https:'?u.href:''}catch{return ''}};
+const setStatus=(message)=>{status.textContent=message};
+fetch('/api/health').then(r=>r.json()).then(d=>setStatus(d.apiConfigured?'商品を検索できます。':'現在、商品検索を利用できません。')).catch(()=>setStatus('APIに接続できません。'));
+const CURATED_PICK_TOPICS = [
+  { name: '3D月面ライト', keyword: '3D 月面 ライト', reason: '月の雑学と組み合わせやすく、写真で興味を引きやすい' },
+  { name: '家庭用プラネタリウム', keyword: '家庭用 プラネタリウム', reason: '星座の雑学から自然につながる体験型アイテム' },
+  { name: '真空断熱タンブラー', keyword: '真空断熱 タンブラー', reason: '保温の仕組みを説明でき、日常の使い道が明確' },
+  { name: 'ノイキャンイヤホン', keyword: 'ノイズキャンセリング イヤホン', reason: '仕組みの雑学が使え、比較の切り口を作りやすい' },
+  { name: 'コーヒードリッパー', keyword: 'コーヒー ドリッパー', reason: '抽出の雑学とセットで紹介しやすい' },
+  { name: '小型モバイルバッテリー', keyword: 'モバイルバッテリー 小型', reason: '充電規格の雑学と実用性を組み合わせられる' },
+  { name: '晴雨兼用折りたたみ傘', keyword: '晴雨兼用 折りたたみ傘', reason: 'UV加工や素材の話と関連づけられる' },
+  { name: 'ロボット掃除機', keyword: 'ロボット掃除機', reason: 'センサーの仕組みと家事の利便性を説明できる' }
+];
+const renderProductCards = (target, items, { ranked = false } = {}) => {
+  target.replaceChildren();
+  for (const item of items) {
+    const article = document.createElement('article'); article.className = 'item';
+    if (ranked && Number.isInteger(item.rank) && item.rank > 0) {
+      const rank = document.createElement('span'); rank.className = 'pick-rank';
+      rank.textContent = `楽天ランキング ${item.rank}位`; article.append(rank);
+    }
+    const imgUrl = safe(item.image);
+    if (imgUrl) { const img = document.createElement('img'); img.src = imgUrl; img.alt = ''; img.loading = 'lazy'; article.append(img); }
+    const h2 = document.createElement('h2'); h2.textContent = item.name;
+    const price = document.createElement('span'); price.className = 'price'; price.textContent = yen(item.price);
+    const shop = document.createElement('span'); shop.className = 'shop'; shop.textContent = item.shop || 'ショップ名未取得';
+    article.append(h2, price, shop);
+    const href = safe(item.url);
+    if (href) {
+      const link = document.createElement('a'); link.href = href; link.target = '_blank'; link.rel = 'noopener noreferrer sponsored'; link.textContent = '楽天市場で見る'; article.append(link);
+    }
+    target.append(article);
+  }
+};
+const searchProducts = async (keyword, target, statusTarget) => {
+  target.replaceChildren(); statusTarget.textContent = '楽天の商品を取得中…';
+  try {
+    const response = await fetch(`/api/search?keyword=${encodeURIComponent(keyword)}`);
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || `商品を取得できませんでした（HTTP ${response.status}）`);
+    renderProductCards(target, Array.isArray(data.items) ? data.items : []);
+    statusTarget.textContent = `${keyword}：${data.count}件取得${data.affiliateConfigured ? '' : '（アフィリエイトID未設定）'}。気になる商品は楽天市場で確認できます。`;
+    if (!data.count) statusTarget.textContent = '該当する商品が見つかりませんでした。別のテーマをお試しください。';
+  } catch (error) { statusTarget.textContent = error instanceof Error ? error.message : '商品を取得できませんでした。'; }
+};
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const keyword = $('#keyword').value.trim();
+  if (!keyword) return setStatus('キーワードを入力してください。');
+  await searchProducts(keyword, results, status);
+});
+const showEditorPickTopics = () => {
+  pickResults.replaceChildren(); pickAttribution.hidden = true;
+  editorPicks.hidden = false;
+  editorPicks.replaceChildren();
+  picksStatus.textContent = '以下は余談商店のおすすめ候補です。販売実績やトレンド調査に基づくランキングではありません。';
+  for (const topic of CURATED_PICK_TOPICS) {
+    const button = document.createElement('button');button.type='button';button.className='pick-topic';
+    const name=document.createElement('strong');name.textContent=topic.name;
+    const reason=document.createElement('span');reason.textContent=topic.reason;
+    const action=document.createElement('span');action.textContent='クリックで楽天の商品候補を表示';
+    button.append(name,reason,action);
+    button.addEventListener('click',async()=>{
+      // 編集候補を元に、実際の楽天商品データを検索する。価格や在庫は捏造しない。
+      editorPicks.hidden=true;
+      await searchProducts(topic.keyword,pickResults,picksStatus);
+    });
+    editorPicks.append(button);
+  }
+};
+editorButton.addEventListener('click', showEditorPickTopics);
+rankingButton.addEventListener('click', async () => {
+  rankingButton.disabled = true;
+  editorPicks.hidden = true;pickAttribution.hidden = true;pickResults.replaceChildren();
+  picksStatus.textContent = '楽天市場のランキングを取得中…';
+  try {
+    const response=await fetch('/api/picks/ranking');
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(data.error || `ランキングを取得できませんでした（HTTP ${response.status}）`);
+    renderProductCards(pickResults, Array.isArray(data.items)?data.items:[],{ranked:true});
+    pickAttribution.hidden=false;
+    const updated=data.updatedAt?`（楽天側の更新表示：${data.updatedAt}）`:'';
+    picksStatus.textContent = `${data.items.length}件のランキング商品を表示${updated}。気になる商品を楽天市場で確認できます。`;
+    if(!data.items.length) picksStatus.textContent='ランキングに表示できる商品がありません。';
+  }catch(error){
+    picksStatus.textContent=(error instanceof Error?error.message:'ランキングを取得できませんでした。')+' 「商店おすすめを見る」から別の商品も探せます。';
+  }finally{rankingButton.disabled=false;}
+});
+
+</script></body></html>
