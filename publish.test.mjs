@@ -14,7 +14,7 @@ test('public listing is empty until explicitly published; private drafts require
  const e=env();await req(e,'/api/drafts');
  assert.equal((await req(e,'/api/drafts','POST',draft)).status,201);
  const pub=await req(e,'/articles');const html=await pub.text();
- assert.equal(pub.status,200);assert.match(html,/公開済みの記事はまだありません/);assert.doesNotMatch(html,/イヤホン紹介/);
+ assert.equal(pub.status,200);assert.match(html,/ただいま、商店の棚を準備中です/);assert.doesNotMatch(html,/イヤホン紹介/);
  assert.equal((await req(e,`/articles/${id}`)).status,404);
  assert.equal((await req(e,'/api/drafts','GET',null,'wrong')).status,401);
 });

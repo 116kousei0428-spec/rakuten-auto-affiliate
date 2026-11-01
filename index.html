@@ -1,53 +1,51 @@
-<!-- Rakuten AI UI v19, served from Worker to prevent stale public/index.html -->
+<!-- Yodan Shoten v20: brand refresh; behavior based on v19 -->
 <!doctype html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>楽天商品検索・AI記事下書き｜v19</title>
-<style>:root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#182134;background:#f4f6fa}
-*{box-sizing:border-box}main{max-width:1080px;margin:30px auto;padding:0 20px}header{margin-bottom:24px}
-h1{font-size:27px;margin:0 0 8px}h2{font-size:18px;margin:0 0 14px}p{line-height:1.65}form{display:flex;gap:10px}
-input,select,textarea{border:1px solid #cdd3dd;background:white;border-radius:9px;padding:13px;font-size:16px;font-family:inherit;min-width:0}
-form input{flex:1}button{border:0;border-radius:9px;background:#2556df;color:#fff;padding:12px 20px;font-size:15px;cursor:pointer}
-button:hover:not(:disabled){filter:brightness(.95)}button:disabled{opacity:.55;cursor:wait}
-.panel{background:#fff;border:1px solid #e3e7ef;border-radius:13px;padding:20px;margin:18px 0}
-#status{margin:14px 0 0;color:#515b69}#ai-status{color:#334155;font-weight:600;white-space:pre-wrap}
-.help{color:#667386;font-size:13px;margin:10px 0}.settings{display:grid;grid-template-columns:190px minmax(0,1fr);align-items:center;gap:10px;max-width:720px}.settings label{font-size:14px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;margin-top:18px}
-.item{background:white;border:1px solid #e3e7ef;border-radius:12px;padding:15px;display:flex;flex-direction:column;gap:12px}
-.item img{width:100%;height:164px;object-fit:contain}.item h2{font-size:15px;line-height:1.5;margin:0}.price{font-weight:700;font-size:19px}
-.shop{color:#697484;font-size:13px}.item a{margin-top:auto;background:#eaf0ff;color:#2345a4;border-radius:8px;text-decoration:none;text-align:center;padding:10px;font-size:14px}
-.item .generate{font-weight:700}.secondary{background:#e9edf5;color:#25324c}.small{padding:7px 11px;font-size:13px}
-#draft-text{display:block;width:100%;line-height:1.7;resize:vertical;min-height:300px}
-.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.draft-row{display:flex;align-items:center;gap:8px;padding:11px 0;border-bottom:1px solid #e6e9f0}.draft-row span{flex:1;font-size:14px;overflow-wrap:anywhere}.auto-option{display:flex;align-items:center;gap:8px;margin-top:16px;font-size:14px}.auto-option input{width:18px;height:18px}.publish{background:#16633b}.pub-link{font-size:13px;overflow-wrap:anywhere}
-footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{flex-direction:column}.settings{grid-template-columns:1fr}main{margin:18px auto}.panel{padding:16px}.draft-row{flex-wrap:wrap}}
-
-.new-mark{font-size:11px;font-weight:700;background:#eaf0ff;color:#2345a4;padding:3px 6px;border-radius:5px;vertical-align:middle}
-.picks-topics[hidden]{display:none}
-.picks-topics{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:16px}
-.pick-topic{background:#fafcff;border:1px solid #dbe3f4;border-radius:11px;padding:15px;cursor:pointer;text-align:left;color:#182134;display:flex;flex-direction:column;gap:7px;min-height:122px}
-.pick-topic:hover{background:#eef3ff;border-color:#8da6ef}.pick-topic strong{font-size:15px}.pick-topic span{font-size:12px;color:#657083;line-height:1.55}
-.pick-rank{display:inline-block;align-self:flex-start;font-size:12px;font-weight:700;color:#254e86;background:#eaf1fd;border-radius:6px;padding:5px 9px}
-.case-option{display:inline-flex;align-items:center;gap:9px;padding:12px 14px;border:1px solid #d4dae7;border-radius:12px;background:#f8fafe;cursor:pointer;margin-top:12px;user-select:none}
-.case-option input{position:absolute;opacity:0;width:1px;height:1px}
-.case-option .case-switch{width:42px;height:24px;background:#aeb8c9;border-radius:50px;position:relative;flex-shrink:0;transition:background .15s}
-.case-switch::before{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .15s}
-.case-option input:checked+.case-switch{background:#2556df}
-.case-option input:checked+.case-switch::before{transform:translateX(18px)}
-.case-option input:focus-visible+.case-switch{outline:3px solid #86a5f9;outline-offset:3px}
-.case-option small{display:block;font-size:12px;color:#687386;margin-top:3px}
-.media-attach{background:#f7f9fc;border:1px solid #dbe3ee;border-radius:12px;padding:16px;margin:14px 0}
-.media-attach h3{font-size:16px;margin:0 0 8px}
-.media-attach>label{font-size:14px}
-.media-attach img{display:block;max-width:240px;max-height:250px;object-fit:contain;background:white;border:1px solid #ddd;border-radius:9px;margin:10px 0}
-.media-attach img[hidden]{display:none}
+<title>余談商店の作業台｜商品と読みもの</title>
+<meta name="theme-color" content="#f8f3e8">
+<meta name="description" content="余談商店の作業台。商品探し、記事づくり、Threads投稿文づくりをひとつの場所で。">
+<style>
+:root{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,system-ui,sans-serif;--ink:#333d30;--muted:#7d8577;--paper:#fffdf8;--cream:#f8f4e9;--linen:#f1e8d7;--border:#e8dec9;--forest:#557257;--deep:#35543c;--mint:#e7eee0;--peach:#e9a36c;--blue:#576f78;--shadow:0 12px 30px rgba(75,68,46,.065);color:var(--ink);background:var(--cream);scroll-behavior:smooth}
+*{box-sizing:border-box}html{scroll-padding-top:95px}body{margin:0;background:radial-gradient(circle at 8% 7%,#fdf7e6 0,transparent 30%),radial-gradient(circle at 90% 23%,#edf0e5 0,transparent 27%),var(--cream)}[hidden]{display:none!important}
+a{color:var(--deep);text-decoration-color:#a5b396;text-underline-offset:4px}a:hover{color:#9b5d35}
+button,input,textarea,select{font:inherit}button{border:1px solid transparent;border-radius:999px;background:var(--deep);color:#fff;padding:12px 20px;font-size:14px;line-height:1.45;font-weight:700;cursor:pointer;box-shadow:0 3px 0 rgba(36,66,44,.15);transition:background .17s,transform .17s,box-shadow .17s}button:hover:not(:disabled){background:#486c4e;transform:translateY(-1px);box-shadow:0 6px 12px #3f593026}button:disabled{opacity:.5;cursor:wait}button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #edb87d;outline-offset:3px}
+input:not([type=checkbox]),select,textarea{background:#fffefa;border:1px solid #d9cfb9;border-radius:14px;padding:12px 14px;color:var(--ink);font-size:15px;min-width:0;box-shadow:inset 0 1px 2px #554b3010}textarea{width:100%;line-height:1.8}input::placeholder,textarea::placeholder{color:#a7aa9d}input[type=checkbox]{accent-color:var(--forest)}
+main{max-width:1160px;margin:0 auto;padding:0 26px 50px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:19px 0}.brand-mini{display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--deep);font-weight:900;letter-spacing:.07em;font-size:16px}.brand-mini img{height:45px;width:45px;border-radius:50%;box-shadow:0 2px 8px #6c5b3426}.topbar-links{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.topbar-links a{border:1px solid #d8dfce;background:#fafff5;border-radius:999px;padding:9px 15px;font-size:12px;text-decoration:none;font-weight:700;white-space:nowrap}
+header.hero{overflow:hidden;position:relative;isolation:isolate;background:linear-gradient(117deg,#355440,#59755c 68%,#72896d);border:1px solid #34573f;border-radius:32px;padding:45px 48px 47px;color:#f9f7ed;box-shadow:0 20px 38px #394f402c;margin-bottom:23px;min-height:280px}.hero:before{content:'';position:absolute;right:-120px;top:-160px;width:490px;height:490px;border:1px solid #ffffff30;border-radius:50%;box-shadow:0 0 0 55px #ffffff0a,0 0 0 100px #ffffff08;z-index:-1}.hero .eyebrow{font-size:12px;letter-spacing:.23em;font-weight:700;opacity:.82;margin:0 0 14px}.hero h1{font-family:'Yu Mincho','Hiragino Mincho ProN',serif;font-size:clamp(31px,5vw,54px);font-weight:800;letter-spacing:.16em;line-height:1.35;margin:0 0 12px}.hero .tagline{font-size:18px;font-weight:700;letter-spacing:.08em;margin:0 0 15px}.hero .hero-desc{font-size:14px;line-height:1.9;max-width:510px;opacity:.9;margin:0}.hero-logo{position:absolute;right:7%;top:50%;transform:translateY(-50%) rotate(7deg);width:220px;height:220px;object-fit:cover;border-radius:50%;border:6px solid #fff8dc;box-shadow:0 12px 35px #192a1b55}.hero-stamp{display:inline-block;margin-top:19px;padding:6px 16px;border:1px solid #f6f3e7a8;border-radius:999px;font-size:11px;letter-spacing:.08em}
+.quick-nav{display:flex;align-items:center;gap:11px;flex-wrap:wrap;margin:20px 0 24px}.quick-nav a{background:#fffdf7;border:1px solid var(--border);padding:10px 18px;border-radius:999px;text-decoration:none;font-size:13px;font-weight:700;color:var(--forest);transition:all .15s}.quick-nav a:hover{background:var(--mint);transform:translateY(-1px)}.quick-nav .nav-lead{font-size:12px;color:var(--muted);font-weight:700;margin-right:3px}
+.page-intro{display:flex;align-items:center;gap:9px;color:#818475;font-size:12px;margin:2px 0 18px}.page-intro:before{content:'✦';color:var(--peach)}
+h1,h2,h3{overflow-wrap:anywhere}h2{font-family:'Yu Mincho','Hiragino Mincho ProN',serif;font-size:clamp(21px,2.5vw,26px);font-weight:800;letter-spacing:.045em;color:var(--deep);margin:0 0 14px}h3{color:var(--deep)}p{line-height:1.8}.panel{position:relative;background:var(--paper);border:1px solid var(--border);border-radius:24px;padding:26px 30px;margin:20px 0;box-shadow:var(--shadow)}.panel-heading{display:flex;align-items:center;gap:12px;margin:0 0 8px}.section-icon{display:grid;place-items:center;flex:none;font-size:24px;background:#f2ebdc;border:1px solid #eadfc9;border-radius:15px;width:50px;height:50px}.panel-heading h2{margin:0}.section-kicker{color:#b3835d;font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;display:block;margin-bottom:4px}.help{color:#7d8175;font-size:12px;line-height:1.8;margin:10px 0}.subtle{font-size:12px;color:var(--muted)}.settings{display:grid;grid-template-columns:200px minmax(0,1fr);align-items:center;gap:13px 18px;max-width:790px;margin-top:18px}.settings label{font-size:13px;font-weight:700}.settings>span.help{font-weight:700}.status-line,#status,#ai-status,#db-status,#picks-status,#social-status{font-size:13px;overflow-wrap:anywhere}#status,#ai-status{color:var(--forest);font-weight:700;white-space:pre-wrap}
+form{display:flex;align-items:center;gap:12px}form input{flex:1;min-height:49px}form button{min-height:48px;min-width:110px}.search-panel{background:linear-gradient(116deg,#fffdfa 25%,#f4f2e7)}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:15px}.secondary{background:#ecf0e6;color:var(--deep);border-color:#d9e3d2;box-shadow:none}.secondary:hover:not(:disabled){background:#dce7d5}.small{padding:7px 14px;font-size:12px}.publish{background:var(--forest)}.new-mark{font:700 10px/1.5 system-ui,sans-serif;background:#fbefdf;color:#a46e3a;padding:4px 9px;border-radius:999px;vertical-align:middle;letter-spacing:.06em}.auto-option{display:flex;align-items:center;gap:9px;margin-top:15px;font-size:13px}.auto-option input{height:17px;width:17px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px;margin:18px 0 25px}.item{min-width:0;background:var(--paper);border:1px solid var(--border);border-radius:22px;padding:15px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow);transition:transform .15s,box-shadow .15s}.item:hover{transform:translateY(-3px);box-shadow:0 16px 29px #50473519}.item img{display:block;width:100%;height:185px;object-fit:contain;background:#faf8f0;border-radius:15px;padding:8px}.item h2{font:700 14px/1.7 'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;letter-spacing:0;margin:0;color:var(--ink);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.price{color:#a2643b;font-size:21px;font-weight:900}.shop{color:var(--muted);font-size:12px}.item a{border:1px solid #d8dfd2;border-radius:999px;background:#eef3eb;color:var(--deep);text-decoration:none;text-align:center;padding:10px;font-size:13px;margin-top:auto}.item .generate{width:100%}
+.picks-topics{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:12px;margin-top:16px}.pick-topic{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:8px;background:#fcfbf6;color:var(--ink);border:1px solid var(--border);border-radius:17px;padding:18px;text-align:left;min-height:127px;box-shadow:none}.pick-topic strong{font-size:15px}.pick-topic span{font-size:12px;color:var(--muted);line-height:1.65}.pick-topic:hover:not(:disabled){background:#f2f6ed;border-color:#9fae99;box-shadow:none}.pick-rank{background:#f5e9d8;color:#985d38;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:800;align-self:flex-start}
+#draft-text{display:block;min-height:310px;resize:vertical;font-size:14px}#social-text{background:#fffdf7;min-height:220px}.draft-row{display:flex;align-items:center;gap:10px;border-bottom:1px dashed #e5dbca;padding:14px 0;flex-wrap:wrap}.draft-row span{flex:1 1 260px;font-size:13px;line-height:1.6;overflow-wrap:anywhere}.pub-link{font-size:12px;overflow-wrap:anywhere}
+.case-option{display:inline-flex;align-items:center;gap:10px;border:1px solid #d9dfd1;border-radius:16px;background:#f6f9f1;padding:13px 18px;margin-top:12px;cursor:pointer;user-select:none}.case-option input{position:absolute;opacity:0;width:1px;height:1px}.case-switch{width:44px;height:25px;border-radius:99px;background:#b4bbae;position:relative;flex-shrink:0;transition:background .15s}.case-switch:before{content:'';position:absolute;top:3px;left:3px;width:19px;height:19px;background:white;border-radius:50%;transition:transform .15s;box-shadow:0 2px 4px #0002}.case-option input:checked+.case-switch{background:var(--forest)}.case-option input:checked+.case-switch:before{transform:translateX(19px)}.case-option input:focus-visible+.case-switch{outline:3px solid #e6b178;outline-offset:3px}.case-option small{display:block;font-size:12px;color:var(--muted);margin-top:3px}.media-attach{background:#f8f9f3;border:1px dashed #c9d7bd;border-radius:18px;padding:20px;margin:18px 0}.media-attach h3{font-size:16px;margin:0 0 10px}.media-attach>label{font-size:13px}.media-attach img{display:block;max-width:250px;max-height:250px;object-fit:contain;background:white;border:1px solid #e0ddcf;border-radius:14px;margin:12px 0}
+.mini-panel{background:#f3f6ee;border:1px solid #dfe6d7;border-radius:17px;padding:18px;margin-top:18px}.mini-panel h3{margin:0 0 8px;font-size:15px}.footer{border-top:1px solid #e9dfcd;margin-top:42px;padding:24px 0;color:var(--muted);font-size:12px;line-height:1.9}.footer-brand{font-weight:800;color:var(--forest);font-size:14px}.footer a{font-size:12px}
+@media(max-width:850px){.hero-logo{width:160px;height:160px;right:4%;opacity:.88}.hero{padding:36px 32px}.hero .hero-desc{max-width:440px}.hero h1{font-size:40px}}
+@media(max-width:620px){main{padding:0 14px 35px}.topbar{padding:12px 0}.brand-mini{font-size:13px}.brand-mini img{height:38px;width:38px}.topbar-links a{padding:7px 10px;font-size:11px}.hero{border-radius:23px;min-height:260px;padding:29px 21px 26px}.hero-logo{width:95px;height:95px;right:13px;top:23px;transform:rotate(9deg);border-width:3px}.hero h1{font-size:35px;max-width:230px}.hero .tagline{font-size:15px}.hero .hero-desc{font-size:12px;padding-right:6px}.hero .eyebrow{font-size:10px}.quick-nav{gap:7px;margin:16px 0}.quick-nav a{font-size:11px;padding:8px 12px}.panel{border-radius:20px;padding:19px 16px;margin:15px 0}.panel-heading{gap:9px}.section-icon{width:40px;height:40px;font-size:21px;border-radius:12px}h2{font-size:21px}form{flex-direction:column;align-items:stretch}form input{min-height:45px}.settings{grid-template-columns:1fr;gap:7px}.grid{grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:11px}.item{padding:11px;gap:8px;border-radius:17px}.item img{height:137px}.item h2{font-size:12px}.price{font-size:17px}.item .generate,.item a{font-size:12px;padding:9px}.picks-topics{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.pick-topic{padding:12px;min-height:130px}.pick-topic strong{font-size:13px}.pick-topic span{font-size:11px}.draft-row{align-items:flex-start}.footer{margin-top:30px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}button,.item,.quick-nav a{transition:none!important}}
 </style>
 </head>
 <body><main>
-  <header><h1>楽天商品検索 ＋ AI記事作成</h1><p class="ui-version">UI v19 / 人気商品ピックアップ＋AI記事＋D1保存＋Threads画像投稿</p><p>楽天の商品データから紹介記事を作成してD1に保存し、サイトへ公開できます。内容を確認して公開してください。</p></header>
-  <section class="panel">
-    <h2>① 楽天の商品を検索</h2>
+  <div class="topbar">
+    <a href="#top" class="brand-mini"><img src="/yodan-logo.webp" alt="余談商店の猫のロゴ"><span>余談商店 <span style="font-size:10px;color:#a47d55">YODAN SHOTEN</span></span></a>
+    <div class="topbar-links"><a href="/shop" target="_blank" rel="noopener">☕ 商店の店先を開く</a><a href="/articles" target="_blank" rel="noopener">📖 読みもの</a></div>
+  </div>
+  <header class="hero" id="top">
+    <p class="eyebrow">YODAN SHOTEN ・ LITTLE CURIO SHOP</p>
+    <h1>余談商店</h1><p class="tagline">知れば、ちょっと欲しくなる。</p>
+    <p class="hero-desc">いつもの暮らしに、小さな発見を。<br>気になるものを見つけて、読みものにして、誰かへ届けよう。</p>
+    <span class="hero-stamp">✦ 商店の作業台 ・ v20</span>
+    <img class="hero-logo" src="/yodan-logo.webp" alt="本と猫の余談商店ロゴ">
+  </header>
+  <nav class="quick-nav" aria-label="作業台のメニュー"><span class="nav-lead">棚をめぐる ↗</span><a href="#search-section">🔎 商品さがし</a><a href="#picks-section">🌿 商店おすすめ</a><a href="#article-settings">📝 記事づくり</a><a href="#saved-articles">📚 記事の棚</a><a href="#threads-section">🧵 投稿づくり</a></nav>
+  <p class="page-intro">ようこそ。今日はどんな面白いものに出会えるかな？</p>
+  <section class="panel search-panel" id="search-section">
+    <div class="panel-heading"><span class="section-icon" aria-hidden="true">🔎</span><div><small class="section-kicker">FIND SOMETHING NICE</small><h2>商品をさがす</h2></div></div>
+    <p class="help">気になる名前を入れて、今日の一品を見つけよう。</p>
     <form id="search-form">
       <input id="keyword" name="keyword" placeholder="商品を検索（例：ワイヤレスイヤホン）" maxlength="100" required>
       <button type="submit">検索</button>
@@ -55,20 +53,20 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
     <p id="status" role="status">API接続を確認中…</p>
   </section>
   <section class="panel" id="picks-section">
-    <h2>①-2 人気・注目商品ピックアップ <span class="new-mark">NEW</span></h2>
+    <div class="panel-heading"><span class="section-icon" aria-hidden="true">🌿</span><div><small class="section-kicker">THE SHOPKEEPER'S PICKS</small><h2>人気のもの・商店おすすめ <span class="new-mark">PICK UP</span></h2></div></div>
     <p class="help">人気商品は楽天市場の公式ランキングAPIから取得します。商店おすすめは独自の編集候補で、売上順位や今後の流行を保証するものではありません。</p>
     <div class="actions" style="margin-top:12px">
-      <button id="load-ranking" type="button">楽天の人気ランキングを見る</button>
-      <button id="show-editor-picks" class="secondary" type="button">商店おすすめ商品を探す</button>
+      <button id="load-ranking" type="button">楽天ランキングを見る</button>
+      <button id="show-editor-picks" class="secondary" type="button">商店おすすめを見る</button>
     </div>
     <p id="picks-status" class="help" role="status">まずはランキングを見るか、注目テーマを選んでください。</p>
     <div id="editor-picks" class="picks-topics" hidden></div>
     <div id="pick-results" class="grid" aria-label="ピックアップされた楽天商品"></div>
     <p class="help" id="picks-attribution" hidden>ランキングの出典：楽天市場 商品ランキングAPI。楽天側の更新時刻・掲載状況により順位や価格は変わります。</p>
   </section>
-  <section class="panel controls" aria-label="記事作成の設定">
-    <h2>② AI記事の下書きを作る</h2>
-    <p class="help">各商品カードの「AI記事を作成」を押すと、Cloudflare Workers AIで記事を生成します。生成は管理者だけが使えます。</p>
+  <section class="panel controls" id="article-settings" aria-label="記事作成の設定">
+    <div class="panel-heading"><span class="section-icon" aria-hidden="true">📝</span><div><small class="section-kicker">WRITE A LITTLE STORY</small><h2>記事をつくる</h2></div></div>
+    <p class="help">商品カードから「記事をつくる」を押すと、AIが紹介文の下書きを作ります。文章を確認してから公開できます。</p>
     <div class="settings">
       <label for="admin-token">管理者キー（CloudflareのAI_ADMIN_TOKEN）</label>
       <input type="password" id="admin-token" placeholder="管理者キーを入力" autocomplete="off">
@@ -85,22 +83,22 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
   </section>
   <section id="results" class="grid" aria-label="検索結果"></section>
   <section id="editor" class="panel" hidden>
-    <h2>③ 記事の下書きを確認・編集</h2>
+    <div class="panel-heading"><span class="section-icon" aria-hidden="true">✍️</span><div><small class="section-kicker">PROOFREAD YOUR STORY</small><h2>記事をととのえる</h2></div></div>
     <p class="help" id="draft-meta"></p>
     <textarea id="draft-text" rows="19" spellcheck="true" aria-label="AI記事の下書き"></textarea>
     <div class="actions"><button id="publish-current" type="button" class="publish">保存して公開・更新</button><button id="unpublish-current" type="button" class="secondary">公開停止</button><button id="save-draft" type="button">D1に保存・更新</button><button id="save-local-draft" type="button" class="secondary">この端末にも保存</button><button id="copy-draft" type="button" class="secondary">コピー</button><button id="download-draft" type="button" class="secondary">Markdownを保存</button></div>
     <p id="draft-status" role="status"></p><p id="publish-status" role="status"></p>
   </section>
-  <section class="panel">
-    <h2>④ D1に保存された記事（別端末からも閲覧・編集可能）</h2>
+  <section class="panel" id="saved-articles">
+    <div class="panel-heading"><span class="section-icon" aria-hidden="true">📚</span><div><small class="section-kicker">STORIES ON THE SHELF</small><h2>記事の棚</h2></div></div>
     <p class="help">保存済み記事はここから公開・公開停止できます。公開記事は誰でも閲覧できるため、個人情報や誤った商品説明を含めないでください。</p>
     <p><a href="/articles" target="_blank" rel="noopener">公開済み記事一覧を見る</a></p>
-    <div class="actions"><button id="load-db-drafts" type="button">D1一覧を読み込む</button></div>
+    <div class="actions"><button id="load-db-drafts" type="button">記事の棚を読み込む</button></div>
     <p id="db-status" role="status"></p>
     <div id="db-list" class="draft-list"></div>
   </section>
   <section class="panel" id="threads-section">
-    <h2>⑤ Threads投稿文（雑学 → 商品紹介）</h2>
+    <div class="panel-heading"><span class="section-icon" aria-hidden="true">🧵</span><div><small class="section-kicker">SEND A LITTLE STORY</small><h2>Threadsの投稿をつくる</h2></div></div>
     <p class="help">D1に公開した記事から、雑学と商品紹介を自然な文章で生成します。見出しや区切り線、末尾のPR注記は付きません。「案件」をONにした場合だけ、冒頭に【PR】を付けます。ON/OFFは生成・再生成時に反映され、初期状態はOFFです。</p>
     <label class="case-option" for="is-sponsored-post">
       <input id="is-sponsored-post" type="checkbox" autocomplete="off">
@@ -108,7 +106,7 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
       <span><strong>案件</strong> <small>OFF（通常投稿）／ON（冒頭に【PR】）</small></span>
     </label>
     <p class="help">案件スイッチは毎回OFFから始まります。商品提供や広告主との取引がある投稿など、PR表記が必要な場合はONにしてください。既存の下書きは自動変更せず、切り替え後の再生成で反映します。</p>
-    <div class="actions"><button id="load-social" type="button" class="secondary">Threads下書き一覧を読み込む</button></div>
+    <div class="actions"><button id="load-social" type="button" class="secondary">投稿の下書きを見る</button></div>
     <p id="social-status" role="status"></p>
     <div id="social-list"></div>
     <div id="social-editor" hidden>
@@ -128,7 +126,7 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
       </div>
       <div class="actions"><button id="regenerate-social" type="button" class="secondary">別の雑学で再生成</button><button id="save-social" type="button">投稿文をD1に保存</button><button id="copy-social" type="button" class="secondary">投稿文をコピー</button><button id="publish-social" type="button" class="publish">Threadsへ投稿（承認後）</button></div>
     </div>
-    <div class="panel" style="background:#f7f9fc">
+    <div class="mini-panel">
       <h3 style="font-size:16px;margin:0 0 8px">Threads連携設定</h3>
       <p class="help">MetaでThreads対応アプリを作成し、本人が権限を許可したThreadsユーザーアクセストークンを取得後、Cloudflareの本番Secret <code>THREADS_ACCESS_TOKEN</code> に登録します。GitHubのコードやこの画面にはトークンを入力しないでください。</p>
       <div class="actions"><button id="check-threads-connection" type="button" class="secondary">Threads接続を確認</button><a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener noreferrer">Metaアプリ管理画面</a></div>
@@ -137,11 +135,11 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
     <p class="help">接続ができても投稿権限と実投稿は別の確認が必要です。投稿は管理者が確認・承認した場合だけ送信します。自動投稿は初期OFFです。</p>
   </section>
   <section class="panel">
-    <h2>このブラウザに残っている旧版下書き</h2>
+    <div class="panel-heading"><span class="section-icon" aria-hidden="true">🗃️</span><div><small class="section-kicker">OLD NOTES</small><h2>この端末の古い下書き</h2></div></div>
     <p class="help">旧版の下書きは削除せず残しています。「開く」→「D1に保存・更新」で移行できます。</p>
     <div id="draft-list" class="draft-list"></div>
   </section>
-  <footer>※アフィリエイト広告を含む記事の下書き作成ツールです。価格や仕様は楽天市場の商品ページで再確認してください。公開ボタンを押した記事のみ外部に表示されます。下書きと管理画面は管理者キーがないと閲覧できません。</footer>
+  <footer class="footer"><div class="footer-brand">🐈 余談商店 / YODAN SHOTEN</div><p>知れば、ちょっと欲しくなる。<br>掲載情報は公開前に確認してください。価格・仕様は楽天市場の商品ページで再確認を。管理操作は管理者キーで保護されています。</p><p><a href="/shop" target="_blank" rel="noopener">商店の店先を見る</a> ・ <a href="/articles" target="_blank" rel="noopener">公開中の読みもの</a></p></footer>
 </main><script>const $ = (selector) => document.querySelector(selector);
 const form = $('#search-form');
 const status = $('#status');
@@ -397,7 +395,7 @@ const renderProductCards = (target, items, { ranked = false } = {}) => {
     if (href) {
       const link = document.createElement('a'); link.href = href; link.target = '_blank'; link.rel = 'noopener noreferrer sponsored'; link.textContent = '楽天市場で見る'; article.append(link);
     }
-    const generate = document.createElement('button'); generate.type = 'button'; generate.textContent = 'AI記事を作成'; generate.className = 'generate';
+    const generate = document.createElement('button'); generate.type = 'button'; generate.textContent = '記事をつくる'; generate.className = 'generate';
     generate.addEventListener('click', () => generateArticle(item, generate));
     article.append(generate);
     target.append(article);
@@ -410,7 +408,7 @@ const searchProducts = async (keyword, target, statusTarget) => {
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || `商品を取得できませんでした（HTTP ${response.status}）`);
     renderProductCards(target, Array.isArray(data.items) ? data.items : []);
-    statusTarget.textContent = `${keyword}：${data.count}件取得${data.affiliateConfigured ? '' : '（アフィリエイトID未設定）'}。気になる商品の「AI記事を作成」を選べます。`;
+    statusTarget.textContent = `${keyword}：${data.count}件取得${data.affiliateConfigured ? '' : '（アフィリエイトID未設定）'}。気になる商品の「記事をつくる」を選べます。`;
     if (!data.count) statusTarget.textContent = '該当する商品が見つかりませんでした。別のテーマをお試しください。';
   } catch (error) { statusTarget.textContent = error instanceof Error ? error.message : '商品を取得できませんでした。'; }
 };
@@ -451,10 +449,10 @@ rankingButton.addEventListener('click', async () => {
     renderProductCards(pickResults, Array.isArray(data.items)?data.items:[],{ranked:true});
     pickAttribution.hidden=false;
     const updated=data.updatedAt?`（楽天側の更新表示：${data.updatedAt}）`:'';
-    picksStatus.textContent = `${data.items.length}件のランキング商品を表示${updated}。気になる商品からAI記事を作成できます。`;
+    picksStatus.textContent = `${data.items.length}件のランキング商品を表示${updated}。気になる商品から記事をつくれます。`;
     if(!data.items.length) picksStatus.textContent='ランキングに表示できる商品がありません。';
   }catch(error){
-    picksStatus.textContent=(error instanceof Error?error.message:'ランキングを取得できませんでした。')+' 「商店おすすめ商品を探す」から別の商品も探せます。';
+    picksStatus.textContent=(error instanceof Error?error.message:'ランキングを取得できませんでした。')+' 「商店おすすめを見る」から別の商品も探せます。';
   }finally{rankingButton.disabled=false;}
 });
 

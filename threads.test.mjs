@@ -88,9 +88,9 @@ test('unknown Threads outcome is not retried automatically',async()=>{
  }finally {globalThis.fetch=old;}
 });
 
-test('UI v19 has a visible generation action on published article list, and inline syntax is valid',async()=>{
+test('UI v20 has a visible generation action on published article list, and inline syntax is valid',async()=>{
  const env=e(); const res=await req(env,'/'); const html=await res.text();
- assert.match(html,/UI v19/);
+ assert.match(html,/余談商店/);
  assert.match(html,/雑学→Threads投稿文/);
  assert.match(html,/Threadsへ投稿（承認後）/);
  const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];

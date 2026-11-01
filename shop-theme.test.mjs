@@ -1,0 +1,42 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync, existsSync } from 'node:fs';
+import worker from '../worker.js';
+import { FakeD1 } from './fake-d1.mjs';
+const env=()=>({DB:new FakeD1(),ASSETS:{fetch:()=>new Response('asset-ok')},AI_ADMIN_TOKEN:'secret-abc'});
+test('v20 shop page is independent, public, and uses existing database',async()=>{
+ const e=env();
+ const r=await worker.fetch(new Request('https://example.com/shop'),e);
+ assert.equal(r.status,200);
+ const html=await r.text();
+ assert.match(html,/余談商店/);
+ assert.match(html,/商店の読みもの/);
+ assert.match(html,/yodan-logo\.webp/);
+ assert.match(html,/アフィリエイト広告/);
+ assert.doesNotMatch(html,/id="admin-token"/);
+});
+test('public article still uses a supported URL and safe markdown',async()=>{
+ const e=env();
+ const id='123e4567-e89b-42d3-a456-426614174000';
+ const base='https://example.com';
+ const call=(path,method='GET',body)=>worker.fetch(new Request(base+path,{method,headers:{'X-Admin-Token':'secret-abc',...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined}),e);
+ await call('/api/drafts');
+ await call('/api/drafts','POST',{id,title:'ほのぼのした道具の話',markdown:'## 生活の道具\n\n[楽天で見る](https://item.rakuten.co.jp/test/product)'});
+ await call(`/api/drafts/${id}/publish`,'POST');
+ const list=await (await call('/shop')).text();
+ assert.match(list,/ほのぼのした道具の話/);
+ assert.match(list,new RegExp(`/articles/${id}`));
+ const detail=await (await call(`/articles/${id}`)).text();
+ assert.match(detail,/article-body/);
+ assert.match(detail,/nofollow sponsored noopener noreferrer/);
+ assert.match(detail,/← 商店の棚に戻る/);
+});
+test('main admin UI keeps existing functional IDs and original deployment target',async()=>{
+ const config=JSON.parse(readFileSync('wrangler.jsonc','utf8'));
+ assert.equal(config.name,'rakuten-auto-affiliate');
+ assert.equal(config.d1_databases[0].database_id,'81926891-4dd8-4cc2-b966-e530d2912452');
+ assert(existsSync('public/yodan-logo.webp'));
+ const html=await (await worker.fetch(new Request('https://example.com/'),env())).text();
+ for (const id of ['keyword','load-ranking','show-editor-picks','admin-token','publish-current','load-db-drafts','is-sponsored-post','social-image-url','social-image-rights','publish-social']) assert(html.includes(`id="${id}"`),id);
+ assert.match(html,/商店の店先を開く/);
+});

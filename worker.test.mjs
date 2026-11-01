@@ -16,7 +16,7 @@ test('health checks presence without revealing secrets', async () => {
   const payload = await r.json();
   assert.equal(r.status, 200);
   assert.equal(payload.apiConfigured, true);
-  assert.equal(payload.release, 'v19');
+  assert.equal(payload.release, 'v20');
   assert.ok(!JSON.stringify(payload).includes('app-private'));
   assert.ok(!JSON.stringify(payload).includes('access-private'));
 });
@@ -26,18 +26,18 @@ test('missing keys returns 503', async () => {
 test('root renders the AI interface from worker (not stale assets)', async () => {
   const r = await worker.fetch(new Request('https://site.test/'), env);
   assert.equal(r.status, 200);
-  assert.equal(r.headers.get('X-Rakuten-UI-Version'), 'v19');
+  assert.equal(r.headers.get('X-Rakuten-UI-Version'), 'v20');
   assert.equal(r.headers.get('Cache-Control'), 'no-store, max-age=0');
   const html = await r.text();
-  assert.match(html, /② AI記事の下書きを作る/);
-  assert.match(html, /AI記事を作成/);
+  assert.match(html, /記事をつくる/);
+  assert.match(html, /記事をつくる/);
   assert.match(html, /<script>/);
   assert.match(html, /id=\"admin-token\"/);
 });
 test('index.html routes to the same worker UI', async () => {
   const r = await worker.fetch(new Request('https://site.test/index.html'), env);
   assert.equal(r.status, 200);
-  assert.equal(r.headers.get('X-Rakuten-UI-Version'), 'v19');
+  assert.equal(r.headers.get('X-Rakuten-UI-Version'), 'v20');
 });
 test('non-home static requests go to assets', async () => {
   const r = await worker.fetch(new Request('https://site.test/non-home-test.css'), env);

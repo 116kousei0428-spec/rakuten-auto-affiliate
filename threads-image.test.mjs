@@ -63,9 +63,9 @@ test('no image selected continues the legacy TEXT path',async()=>{
   assert.equal(new URLSearchParams(calls[0].options.body).get('media_type'),'TEXT');
  }finally{globalThis.fetch=old;}
 });
-test('v19 UI displays image-preview and rights checks, still defaults to text',async()=>{
+test('v20 UI displays image-preview and rights checks, still defaults to text',async()=>{
  const html=await (await req(env(),'/')).text();
- assert.match(html,/UI v19/);assert.match(html,/id="social-image-url"/);assert.match(html,/id="social-image-rights"/);assert.match(html,/id="social-attach-image"/);
+ assert.match(html,/余談商店/);assert.match(html,/id="social-image-url"/);assert.match(html,/id="social-image-rights"/);assert.match(html,/id="social-attach-image"/);
  assert.match(html,/楽天APIの写真は商品確認用プレビュー/);
  assert.match(html,/socialImageRights\.checked=false/);
  assert.match(html,/写真付きでThreadsへ投稿/);
