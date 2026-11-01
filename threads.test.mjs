@@ -21,14 +21,17 @@ test('posts cannot be generated without admin or a published article', async()=>
  assert.equal((await req(env,'/api/social/threads','POST',{articleId:'bad'})).status,400);
 });
 
-test('draft layout: verified trivia first, product intro below, PR and article URL, D1 save/load',async()=>{
+test('draft layout: plain prose without headings or PR by default, article URL, D1 save/load',async()=>{
  const env=e();await saveAndPublish(env);
  const response=await req(env,'/api/social/threads','POST',{articleId:id});
  assert.equal(response.status,201);
  const data=await response.json();
  const body=data.post.body;
- assert(body.startsWith('【PR】\n\n【ちょっとした雑学】'));
- assert(body.indexOf('ノイズキャンセリング') < body.indexOf('【商品紹介】'));
+ assert(!body.startsWith('【PR】'));
+ assert(!body.includes('【ちょっとした雑学】'));
+ assert(!body.includes('【商品紹介】'));
+ assert(!body.includes('──────'));
+ assert(body.indexOf('ノイズキャンセリング') < body.indexOf('イヤホンの特徴'));
  assert(body.includes('イヤホンの特徴'));
  assert(!body.includes('ワイヤレスイヤホン入門'),'do not quote SEO title verbatim');
  assert(body.includes(`/articles/${id}`));
@@ -87,7 +90,7 @@ test('unknown Threads outcome is not retried automatically',async()=>{
 
 test('UI v18 has a visible generation action on published article list, and inline syntax is valid',async()=>{
  const env=e(); const res=await req(env,'/'); const html=await res.text();
- assert.match(html,/UI v18/);
+ assert.match(html,/UI v18\.2/);
  assert.match(html,/雑学→Threads投稿文/);
  assert.match(html,/Threadsへ投稿（承認後）/);
  const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
@@ -103,7 +106,7 @@ test('sake post uses sake-specific verified trivia, concise intro and D1 regener
  assert.equal((await req(env,`/api/drafts/${id}/publish`,'POST')).status,200);
  const created=(await (await req(env,'/api/social/threads','POST',{articleId:id})).json()).post;
  assert.match(created.body,/(日本酒の「一升」|「四合瓶」)/);
- assert.match(created.body,/【商品紹介】/);
+ assert.doesNotMatch(created.body,/【商品紹介】/);
  assert(!created.body.includes('通販の商品説明'));
  assert(!created.body.includes('特徴と購入前のチェックポ'));
  assert(!created.body.includes('日本酒 飲み比べセット 普通酒 特割 全国 地酒'));
@@ -157,7 +160,7 @@ test('UI offers opt-in local key retention, deletion, regeneration and connectio
 });
 
 
-test('moon light selects moon-specific facts before generic lighting and PR at top',async()=>{
+test('moon light selects moon-specific facts before generic lighting without PR by default',async()=>{
  const env=e();
  const title='3D 月面ライト USB充電式 ムーンライト クリスマス プレゼント｜特徴と購入前のチェックポイント';
  const md='この記事には色温度やルーメンなどの照明用語が含まれます。';
@@ -165,7 +168,7 @@ test('moon light selects moon-specific facts before generic lighting and PR at t
  assert.equal((await req(env,`/api/drafts/${id}/publish`,'POST')).status,200);
  const r=await req(env,'/api/social/threads','POST',{articleId:id});
  assert.equal(r.status,201);const body=(await r.json()).post.body;
- assert.match(body,/^【PR】/);
+ assert.doesNotMatch(body,/^【PR】/);
  assert.match(body,/月は地球|月の裏側/);
  assert.doesNotMatch(body,/色温度|ルーメン/);
  assert.match(body,/月面をモチーフ/);
@@ -185,4 +188,49 @@ test('category uses product title only, never generic article body; no false tri
  const r=await req(env,'/api/social/threads','POST',{articleId:id});
  assert.equal(r.status,422);
  assert.equal((await r.json()).errorCode,'NO_VERIFIED_TRIVIA');
+});
+
+
+test('sponsored mode prefixes PR only when requested on create and on regenerate',async()=>{
+ const env=e(); await saveAndPublish(env);
+ const created=await req(env,'/api/social/threads','POST',{articleId:id,isPromotion:true});
+ assert.equal(created.status,201);
+ const first=(await created.json()).post.body;
+ assert(first.startsWith('【PR】\n\n'));
+ assert(!first.includes('【商品紹介】'));
+ assert(!first.includes('【ちょっとした雑学】'));
+ assert(!first.includes('※PR・アフィリエイト広告を含みます'));
+ assert.equal((await req(env,`/api/social/threads/${id}`,'PUT',{body:first})).status,200);
+ const changed=await req(env,`/api/social/threads/${id}/regenerate`,'POST',{isPromotion:false});
+ assert.equal(changed.status,200);
+ const normal=(await changed.json()).post.body;
+ assert(!normal.startsWith('【PR】'));
+ assert(!normal.includes('──────'));
+ assert(normal.includes(`/articles/${id}`));
+ assert.equal((await req(env,`/api/social/threads/${id}`,'PUT',{body:normal})).status,200);
+ const changedBack=await req(env,`/api/social/threads/${id}/regenerate`,'POST',{isPromotion:true});
+ assert.equal(changedBack.status,200);
+ const sponsored=(await changedBack.json()).post.body;
+ assert(sponsored.startsWith('【PR】\n\n'));
+ assert.equal((await req(env,`/api/social/threads/${id}`,'PUT',{body:sponsored})).status,200);
+});
+
+test('default off and invalid sponsored settings are rejected',async()=>{
+ const env=e(); await saveAndPublish(env);
+ const invalid=await req(env,'/api/social/threads','POST',{articleId:id,isPromotion:'true'});
+ assert.equal(invalid.status,400);
+ const created=await req(env,'/api/social/threads','POST',{articleId:id});
+ const data=(await created.json()).post.body;
+ assert(!data.startsWith('【PR】'));
+ assert.equal((await req(env,`/api/social/threads/${id}/regenerate`,'POST',{isPromotion:'true'})).status,400);
+ assert.equal((await req(env,`/api/social/threads/${id}/regenerate`,'POST',{isPromotion:false})).status,200);
+});
+
+test('sponsored toggle is visible unchecked and wired to both generation requests',async()=>{
+ const html=await(await req(e(),'/')).text();
+ assert.match(html,/id="is-sponsored-post" type="checkbox" autocomplete="off"/);
+ assert.match(html,/isPromotion:isSponsoredPost\.checked/g);
+ assert.doesNotMatch(html,/id="is-sponsored-post"[^>]*checked/);
+ assert.match(html,/案件スイッチは毎回OFFから始まります/);
+ assert.match(html,/isSponsoredPost\.checked=false/);
 });

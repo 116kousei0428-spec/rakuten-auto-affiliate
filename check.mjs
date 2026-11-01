@@ -21,7 +21,7 @@ assert(uiSource.includes('雑学→Threads投稿文'));
 assert(uiSource.includes('id="load-ranking"'));
 assert(uiSource.includes('id="show-editor-picks"'));
 assert(workerSource.includes('THREADS_ACCESS_TOKEN'));
-console.log('PASS: Worker, D1 binding and UI v18 paths match GitHub layout');
+console.log('PASS: Worker, D1 binding and UI v18.2 paths match GitHub layout');
 
 assert(uiSource.includes('id="auto-publish-after-generate"'));
 assert(uiSource.includes('公開済み記事一覧を見る'));

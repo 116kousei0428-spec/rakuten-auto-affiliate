@@ -1,10 +1,10 @@
-<!-- Rakuten AI UI v18, served from Worker to prevent stale public/index.html -->
+<!-- Rakuten AI UI v18.2, served from Worker to prevent stale public/index.html -->
 <!doctype html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>楽天商品検索・AI記事下書き｜v18</title>
+<title>楽天商品検索・AI記事下書き｜v18.2</title>
 <style>:root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#182134;background:#f4f6fa}
 *{box-sizing:border-box}main{max-width:1080px;margin:30px auto;padding:0 20px}header{margin-bottom:24px}
 h1{font-size:27px;margin:0 0 8px}h2{font-size:18px;margin:0 0 14px}p{line-height:1.65}form{display:flex;gap:10px}
@@ -29,10 +29,18 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
 .pick-topic{background:#fafcff;border:1px solid #dbe3f4;border-radius:11px;padding:15px;cursor:pointer;text-align:left;color:#182134;display:flex;flex-direction:column;gap:7px;min-height:122px}
 .pick-topic:hover{background:#eef3ff;border-color:#8da6ef}.pick-topic strong{font-size:15px}.pick-topic span{font-size:12px;color:#657083;line-height:1.55}
 .pick-rank{display:inline-block;align-self:flex-start;font-size:12px;font-weight:700;color:#254e86;background:#eaf1fd;border-radius:6px;padding:5px 9px}
+.case-option{display:inline-flex;align-items:center;gap:9px;padding:12px 14px;border:1px solid #d4dae7;border-radius:12px;background:#f8fafe;cursor:pointer;margin-top:12px;user-select:none}
+.case-option input{position:absolute;opacity:0;width:1px;height:1px}
+.case-option .case-switch{width:42px;height:24px;background:#aeb8c9;border-radius:50px;position:relative;flex-shrink:0;transition:background .15s}
+.case-switch::before{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .15s}
+.case-option input:checked+.case-switch{background:#2556df}
+.case-option input:checked+.case-switch::before{transform:translateX(18px)}
+.case-option input:focus-visible+.case-switch{outline:3px solid #86a5f9;outline-offset:3px}
+.case-option small{display:block;font-size:12px;color:#687386;margin-top:3px}
 </style>
 </head>
 <body><main>
-  <header><h1>楽天商品検索 ＋ AI記事作成</h1><p class="ui-version">UI v18 / 人気商品ピックアップ＋AI記事＋D1保存＋Threads投稿</p><p>楽天の商品データから紹介記事を作成してD1に保存し、サイトへ公開できます。内容を確認して公開してください。</p></header>
+  <header><h1>楽天商品検索 ＋ AI記事作成</h1><p class="ui-version">UI v18.2 / 人気商品ピックアップ＋AI記事＋D1保存＋Threads投稿</p><p>楽天の商品データから紹介記事を作成してD1に保存し、サイトへ公開できます。内容を確認して公開してください。</p></header>
   <section class="panel">
     <h2>① 楽天の商品を検索</h2>
     <form id="search-form">
@@ -88,7 +96,13 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
   </section>
   <section class="panel" id="threads-section">
     <h2>⑤ Threads投稿文（雑学 → 商品紹介）</h2>
-    <p class="help">D1に公開した記事から「【PR】 → 商品に合う雑学 → 商品紹介 → 記事リンク」の順で投稿文を作成します。確認済みの雑学がない商品では生成を停止します。文章は公開前に確認・修正してください。</p>
+    <p class="help">D1に公開した記事から、雑学と商品紹介を自然な文章で生成します。見出しや区切り線、末尾のPR注記は付きません。「案件」をONにした場合だけ、冒頭に【PR】を付けます。ON/OFFは生成・再生成時に反映され、初期状態はOFFです。</p>
+    <label class="case-option" for="is-sponsored-post">
+      <input id="is-sponsored-post" type="checkbox" autocomplete="off">
+      <span class="case-switch" aria-hidden="true"></span>
+      <span><strong>案件</strong> <small>OFF（通常投稿）／ON（冒頭に【PR】）</small></span>
+    </label>
+    <p class="help">案件スイッチは毎回OFFから始まります。商品提供や広告主との取引がある投稿など、PR表記が必要な場合はONにしてください。既存の下書きは自動変更せず、切り替え後の再生成で反映します。</p>
     <div class="actions"><button id="load-social" type="button" class="secondary">Threads下書き一覧を読み込む</button></div>
     <p id="social-status" role="status"></p>
     <div id="social-list"></div>
@@ -497,6 +511,10 @@ const socialStatus = $('#social-status');
 const socialList = $('#social-list');
 const socialEditor = $('#social-editor');
 const socialText = $('#social-text');
+const isSponsoredPost = $('#is-sponsored-post');
+// Never retain sponsored mode between visits, including back-forward cache restores.
+isSponsoredPost.checked=false;
+window.addEventListener('pageshow',()=>{isSponsoredPost.checked=false;});
 let currentSocial = null;
 function openSocial(post){
   currentSocial={...post};
@@ -531,8 +549,8 @@ async function createSocial(articleId){
   if(!requireToken())return;
   socialStatus.textContent='商品に合う雑学を選定中…';
   try{
-    const data=await apiRequest('/api/social/threads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({articleId})});
-    socialStatus.textContent=data.alreadyExists?'保存済みの投稿文を開きました。':'商品に関係する雑学を使って投稿文を作成しました。内容を確認してください。';
+    const data=await apiRequest('/api/social/threads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({articleId,isPromotion:isSponsoredPost.checked})});
+    socialStatus.textContent=data.alreadyExists?'保存済みの投稿文を開きました。案件スイッチを反映するには「別の雑学で再生成」を押してください。':'商品に関係する雑学を使って文章を作成しました。内容を確認してください。';
     openSocial(data.post);
     await loadSocial();
   }catch(e){socialStatus.textContent=e.message||'下書きを作成できませんでした。';}
@@ -544,9 +562,9 @@ $('#regenerate-social').addEventListener('click',async()=>{
   if(!confirm('現在のThreads投稿下書きを新しい雑学・紹介文で上書きしますか？編集済みの文章は失われます。'))return;
   const button=$('#regenerate-social');button.disabled=true;
   try {
-    const data=await apiRequest(`/api/social/threads/${encodeURIComponent(currentSocial.article_id)}/regenerate`,{method:'POST'});
+    const data=await apiRequest(`/api/social/threads/${encodeURIComponent(currentSocial.article_id)}/regenerate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({isPromotion:isSponsoredPost.checked})});
     openSocial(data.post);
-    socialStatus.textContent='別の確認済み雑学に更新しました。D1へ保存済みです。';
+    socialStatus.textContent='案件スイッチに合わせて文章を再生成し、D1に保存しました。';
     await loadSocial();
   } catch(error){socialStatus.textContent=error.message||'再生成に失敗しました。';}
   finally { button.disabled=currentSocial?.status!=='draft'; }
