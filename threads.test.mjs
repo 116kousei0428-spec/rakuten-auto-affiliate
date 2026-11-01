@@ -27,12 +27,12 @@ test('draft layout: verified trivia first, product intro below, PR and article U
  assert.equal(response.status,201);
  const data=await response.json();
  const body=data.post.body;
- assert(body.startsWith('【ちょっとした雑学】'));
+ assert(body.startsWith('【PR】\n\n【ちょっとした雑学】'));
  assert(body.indexOf('ノイズキャンセリング') < body.indexOf('【商品紹介】'));
  assert(body.includes('イヤホンの特徴'));
  assert(!body.includes('ワイヤレスイヤホン入門'),'do not quote SEO title verbatim');
  assert(body.includes(`/articles/${id}`));
- assert(body.includes('※PR・アフィリエイト広告を含みます'));
+ assert(!body.includes('※PR・アフィリエイト広告を含みます'));
  assert([...body].length <= 500);
  const duplicate=await req(env,'/api/social/threads','POST',{articleId:id});
  assert.equal(duplicate.status,200);
@@ -85,9 +85,9 @@ test('unknown Threads outcome is not retried automatically',async()=>{
  }finally {globalThis.fetch=old;}
 });
 
-test('UI v16 has a visible generation action on published article list, and inline syntax is valid',async()=>{
+test('UI v18 has a visible generation action on published article list, and inline syntax is valid',async()=>{
  const env=e(); const res=await req(env,'/'); const html=await res.text();
- assert.match(html,/UI v16/);
+ assert.match(html,/UI v18/);
  assert.match(html,/雑学→Threads投稿文/);
  assert.match(html,/Threadsへ投稿（承認後）/);
  const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
@@ -113,7 +113,8 @@ test('sake post uses sake-specific verified trivia, concise intro and D1 regener
  const regenerated=await req(env,`/api/social/threads/${id}/regenerate`,'POST');
  assert.equal(regenerated.status,200);
  const newText=(await regenerated.json()).post.body;
- assert.equal(newText,created.body);
+ assert.notEqual(newText,created.body);
+ assert.match(newText,/(日本酒の「一升」|「四合瓶」)/);
  assert.notEqual(newText,edited);
  assert.equal((await (await req(env,`/api/social/threads/${id}`)).json()).post.body,newText);
  assert.equal((await req(env,`/api/social/threads/${id}/regenerate`,'GET')).status,405);
@@ -153,4 +154,35 @@ test('UI offers opt-in local key retention, deletion, regeneration and connectio
  assert.match(html,/id="regenerate-social"/);
  assert.match(html,/id="check-threads-connection"/);
  assert.match(html,/共有端末では保存しないでください/);
+});
+
+
+test('moon light selects moon-specific facts before generic lighting and PR at top',async()=>{
+ const env=e();
+ const title='3D 月面ライト USB充電式 ムーンライト クリスマス プレゼント｜特徴と購入前のチェックポイント';
+ const md='この記事には色温度やルーメンなどの照明用語が含まれます。';
+ assert.equal((await req(env,'/api/drafts','POST',{id,title,markdown:md})).status,201);
+ assert.equal((await req(env,`/api/drafts/${id}/publish`,'POST')).status,200);
+ const r=await req(env,'/api/social/threads','POST',{articleId:id});
+ assert.equal(r.status,201);const body=(await r.json()).post.body;
+ assert.match(body,/^【PR】/);
+ assert.match(body,/月は地球|月の裏側/);
+ assert.doesNotMatch(body,/色温度|ルーメン/);
+ assert.match(body,/月面をモチーフ/);
+ assert(!body.includes('※PR・アフィリエイト広告を含みます'));
+ assert([...body].length<=500);
+ const updated=await req(env,`/api/social/threads/${id}/regenerate`,'POST');
+ assert.equal(updated.status,200);
+ assert.notEqual((await updated.json()).post.body,body);
+});
+
+test('category uses product title only, never generic article body; no false trivia',async()=>{
+ const env=e();
+ const title='無関係な装飾品A｜特徴と購入前のチェックポイント';
+ const md='これは一般的な記事。照明についても触れているが商品のカテゴリは違います。';
+ assert.equal((await req(env,'/api/drafts','POST',{id,title,markdown:md})).status,201);
+ assert.equal((await req(env,`/api/drafts/${id}/publish`,'POST')).status,200);
+ const r=await req(env,'/api/social/threads','POST',{articleId:id});
+ assert.equal(r.status,422);
+ assert.equal((await r.json()).errorCode,'NO_VERIFIED_TRIVIA');
 });

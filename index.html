@@ -1,10 +1,10 @@
-<!-- Rakuten AI UI v16, served from Worker to prevent stale public/index.html -->
+<!-- Rakuten AI UI v18, served from Worker to prevent stale public/index.html -->
 <!doctype html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>楽天商品検索・AI記事下書き｜v16</title>
+<title>楽天商品検索・AI記事下書き｜v18</title>
 <style>:root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#182134;background:#f4f6fa}
 *{box-sizing:border-box}main{max-width:1080px;margin:30px auto;padding:0 20px}header{margin-bottom:24px}
 h1{font-size:27px;margin:0 0 8px}h2{font-size:18px;margin:0 0 14px}p{line-height:1.65}form{display:flex;gap:10px}
@@ -22,10 +22,17 @@ button:hover:not(:disabled){filter:brightness(.95)}button:disabled{opacity:.55;c
 #draft-text{display:block;width:100%;line-height:1.7;resize:vertical;min-height:300px}
 .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.draft-row{display:flex;align-items:center;gap:8px;padding:11px 0;border-bottom:1px solid #e6e9f0}.draft-row span{flex:1;font-size:14px;overflow-wrap:anywhere}.auto-option{display:flex;align-items:center;gap:8px;margin-top:16px;font-size:14px}.auto-option input{width:18px;height:18px}.publish{background:#16633b}.pub-link{font-size:13px;overflow-wrap:anywhere}
 footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{flex-direction:column}.settings{grid-template-columns:1fr}main{margin:18px auto}.panel{padding:16px}.draft-row{flex-wrap:wrap}}
+
+.new-mark{font-size:11px;font-weight:700;background:#eaf0ff;color:#2345a4;padding:3px 6px;border-radius:5px;vertical-align:middle}
+.picks-topics[hidden]{display:none}
+.picks-topics{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:16px}
+.pick-topic{background:#fafcff;border:1px solid #dbe3f4;border-radius:11px;padding:15px;cursor:pointer;text-align:left;color:#182134;display:flex;flex-direction:column;gap:7px;min-height:122px}
+.pick-topic:hover{background:#eef3ff;border-color:#8da6ef}.pick-topic strong{font-size:15px}.pick-topic span{font-size:12px;color:#657083;line-height:1.55}
+.pick-rank{display:inline-block;align-self:flex-start;font-size:12px;font-weight:700;color:#254e86;background:#eaf1fd;border-radius:6px;padding:5px 9px}
 </style>
 </head>
 <body><main>
-  <header><h1>楽天商品検索 ＋ AI記事作成</h1><p class="ui-version">UI v16 / AI記事＋D1保存＋公開＋Threads投稿</p><p>楽天の商品データから紹介記事を作成してD1に保存し、サイトへ公開できます。内容を確認して公開してください。</p></header>
+  <header><h1>楽天商品検索 ＋ AI記事作成</h1><p class="ui-version">UI v18 / 人気商品ピックアップ＋AI記事＋D1保存＋Threads投稿</p><p>楽天の商品データから紹介記事を作成してD1に保存し、サイトへ公開できます。内容を確認して公開してください。</p></header>
   <section class="panel">
     <h2>① 楽天の商品を検索</h2>
     <form id="search-form">
@@ -33,6 +40,18 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
       <button type="submit">検索</button>
     </form>
     <p id="status" role="status">API接続を確認中…</p>
+  </section>
+  <section class="panel" id="picks-section">
+    <h2>①-2 人気・注目商品ピックアップ <span class="new-mark">NEW</span></h2>
+    <p class="help">人気商品は楽天市場の公式ランキングAPIから取得します。商店おすすめは独自の編集候補で、売上順位や今後の流行を保証するものではありません。</p>
+    <div class="actions" style="margin-top:12px">
+      <button id="load-ranking" type="button">楽天の人気ランキングを見る</button>
+      <button id="show-editor-picks" class="secondary" type="button">商店おすすめ商品を探す</button>
+    </div>
+    <p id="picks-status" class="help" role="status">まずはランキングを見るか、注目テーマを選んでください。</p>
+    <div id="editor-picks" class="picks-topics" hidden></div>
+    <div id="pick-results" class="grid" aria-label="ピックアップされた楽天商品"></div>
+    <p class="help" id="picks-attribution" hidden>ランキングの出典：楽天市場 商品ランキングAPI。楽天側の更新時刻・掲載状況により順位や価格は変わります。</p>
   </section>
   <section class="panel controls" aria-label="記事作成の設定">
     <h2>② AI記事の下書きを作る</h2>
@@ -69,7 +88,7 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
   </section>
   <section class="panel" id="threads-section">
     <h2>⑤ Threads投稿文（雑学 → 商品紹介）</h2>
-    <p class="help">D1に公開した記事から「雑学 → 商品紹介 → 記事リンク → PR」の順で投稿文を作成します。文章は公開前に確認・修正してください。</p>
+    <p class="help">D1に公開した記事から「【PR】 → 商品に合う雑学 → 商品紹介 → 記事リンク」の順で投稿文を作成します。確認済みの雑学がない商品では生成を停止します。文章は公開前に確認・修正してください。</p>
     <div class="actions"><button id="load-social" type="button" class="secondary">Threads下書き一覧を読み込む</button></div>
     <p id="social-status" role="status"></p>
     <div id="social-list"></div>
@@ -77,7 +96,7 @@ footer{color:#758093;font-size:12px;margin:32px 0}@media(max-width:600px){form{f
       <p class="help" id="social-meta"></p>
       <textarea id="social-text" rows="10" maxlength="500" style="width:100%;line-height:1.7" aria-label="Threads投稿文"></textarea>
       <p class="help" id="social-count">0 / 500文字</p>
-      <div class="actions"><button id="regenerate-social" type="button" class="secondary">雑学・紹介文を再生成</button><button id="save-social" type="button">投稿文をD1に保存</button><button id="copy-social" type="button" class="secondary">投稿文をコピー</button><button id="publish-social" type="button" class="publish">Threadsへ投稿（承認後）</button></div>
+      <div class="actions"><button id="regenerate-social" type="button" class="secondary">別の雑学で再生成</button><button id="save-social" type="button">投稿文をD1に保存</button><button id="copy-social" type="button" class="secondary">投稿文をコピー</button><button id="publish-social" type="button" class="publish">Threadsへ投稿（承認後）</button></div>
     </div>
     <div class="panel" style="background:#f7f9fc">
       <h3 style="font-size:16px;margin:0 0 8px">Threads連携設定</h3>
@@ -313,32 +332,100 @@ fetch('/api/health')
   })
   .catch(() => setStatus('APIに接続できません。'));
 
-form.addEventListener('submit', async (e) => {
-  e.preventDefault(); results.replaceChildren(); setStatus('検索中…');
-  const keyword = $('#keyword').value.trim();
-  if (!keyword) return setStatus('キーワードを入力してください。');
+const pickResults = $('#pick-results');
+const picksStatus = $('#picks-status');
+const editorPicks = $('#editor-picks');
+const pickAttribution = $('#picks-attribution');
+const rankingButton = $('#load-ranking');
+const editorButton = $('#show-editor-picks');
+// これらは市場人気の実測値ではなく、雑学と商品紹介の相性を重視した編集上の仮説。
+const CURATED_PICK_TOPICS = [
+  { name: '3D月面ライト', keyword: '3D 月面 ライト', reason: '月の雑学と組み合わせやすく、写真で興味を引きやすい' },
+  { name: '家庭用プラネタリウム', keyword: '家庭用 プラネタリウム', reason: '星座の雑学から自然につながる体験型アイテム' },
+  { name: '真空断熱タンブラー', keyword: '真空断熱 タンブラー', reason: '保温の仕組みを説明でき、日常の使い道が明確' },
+  { name: 'ノイキャンイヤホン', keyword: 'ノイズキャンセリング イヤホン', reason: '仕組みの雑学が使え、比較の切り口を作りやすい' },
+  { name: 'コーヒードリッパー', keyword: 'コーヒー ドリッパー', reason: '抽出の雑学とセットで紹介しやすい' },
+  { name: '小型モバイルバッテリー', keyword: 'モバイルバッテリー 小型', reason: '充電規格の雑学と実用性を組み合わせられる' },
+  { name: '晴雨兼用折りたたみ傘', keyword: '晴雨兼用 折りたたみ傘', reason: 'UV加工や素材の話と関連づけられる' },
+  { name: 'ロボット掃除機', keyword: 'ロボット掃除機', reason: 'センサーの仕組みと家事の利便性を説明できる' }
+];
+const renderProductCards = (target, items, { ranked = false } = {}) => {
+  target.replaceChildren();
+  for (const item of items) {
+    const article = document.createElement('article'); article.className = 'item';
+    if (ranked && Number.isInteger(item.rank) && item.rank > 0) {
+      const rank = document.createElement('span'); rank.className = 'pick-rank';
+      rank.textContent = `楽天ランキング ${item.rank}位`; article.append(rank);
+    }
+    const imgUrl = safe(item.image);
+    if (imgUrl) { const img = document.createElement('img'); img.src = imgUrl; img.alt = ''; img.loading = 'lazy'; article.append(img); }
+    const h2 = document.createElement('h2'); h2.textContent = item.name;
+    const price = document.createElement('span'); price.className = 'price'; price.textContent = yen(item.price);
+    const shop = document.createElement('span'); shop.className = 'shop'; shop.textContent = item.shop || 'ショップ名未取得';
+    article.append(h2, price, shop);
+    const href = safe(item.url);
+    if (href) {
+      const link = document.createElement('a'); link.href = href; link.target = '_blank'; link.rel = 'noopener noreferrer sponsored'; link.textContent = '楽天市場で見る'; article.append(link);
+    }
+    const generate = document.createElement('button'); generate.type = 'button'; generate.textContent = 'AI記事を作成'; generate.className = 'generate';
+    generate.addEventListener('click', () => generateArticle(item, generate));
+    article.append(generate);
+    target.append(article);
+  }
+};
+const searchProducts = async (keyword, target, statusTarget) => {
+  target.replaceChildren(); statusTarget.textContent = '楽天の商品を取得中…';
   try {
     const response = await fetch(`/api/search?keyword=${encodeURIComponent(keyword)}`);
-    const data = await response.json().catch(() => ({ error: `API応答を読み取れません（HTTP ${response.status}）` }));
-    if (!response.ok) throw new Error(data.error || '検索に失敗しました。');
-    setStatus(`${data.count}件取得${data.affiliateConfigured ? '' : '（アフィリエイトID未設定）'}`);
-    for (const item of data.items) {
-      const article = document.createElement('article'); article.className = 'item';
-      const imgUrl = safe(item.image); if (imgUrl) { const img = document.createElement('img'); img.src = imgUrl; img.alt = ''; img.loading = 'lazy'; article.append(img); }
-      const h2 = document.createElement('h2'); h2.textContent = item.name;
-      const price = document.createElement('span'); price.className = 'price'; price.textContent = yen(item.price);
-      const shop = document.createElement('span'); shop.className = 'shop'; shop.textContent = item.shop;
-      article.append(h2, price, shop);
-      const href = safe(item.url);
-      if (href) {
-        const link = document.createElement('a'); link.href = href; link.target = '_blank'; link.rel = 'noopener noreferrer sponsored'; link.textContent = '楽天市場で見る'; article.append(link);
-      }
-      const generate = document.createElement('button'); generate.type = 'button'; generate.textContent = 'AI記事を作成'; generate.className = 'generate';
-      generate.addEventListener('click', () => generateArticle(item, generate));
-      article.append(generate);
-      results.append(article);
-    }
-  } catch (error) { setStatus(error instanceof Error ? error.message : '検索に失敗しました。'); }
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || `商品を取得できませんでした（HTTP ${response.status}）`);
+    renderProductCards(target, Array.isArray(data.items) ? data.items : []);
+    statusTarget.textContent = `${keyword}：${data.count}件取得${data.affiliateConfigured ? '' : '（アフィリエイトID未設定）'}。気になる商品の「AI記事を作成」を選べます。`;
+    if (!data.count) statusTarget.textContent = '該当する商品が見つかりませんでした。別のテーマをお試しください。';
+  } catch (error) { statusTarget.textContent = error instanceof Error ? error.message : '商品を取得できませんでした。'; }
+};
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const keyword = $('#keyword').value.trim();
+  if (!keyword) return setStatus('キーワードを入力してください。');
+  await searchProducts(keyword, results, status);
+});
+const showEditorPickTopics = () => {
+  pickResults.replaceChildren(); pickAttribution.hidden = true;
+  editorPicks.hidden = false;
+  editorPicks.replaceChildren();
+  picksStatus.textContent = '以下は余談商店のおすすめ候補です。販売実績やトレンド調査に基づくランキングではありません。';
+  for (const topic of CURATED_PICK_TOPICS) {
+    const button = document.createElement('button');button.type='button';button.className='pick-topic';
+    const name=document.createElement('strong');name.textContent=topic.name;
+    const reason=document.createElement('span');reason.textContent=topic.reason;
+    const action=document.createElement('span');action.textContent='クリックで楽天の商品候補を表示';
+    button.append(name,reason,action);
+    button.addEventListener('click',async()=>{
+      // 編集候補を元に、実際の楽天商品データを検索する。価格や在庫は捏造しない。
+      editorPicks.hidden=true;
+      await searchProducts(topic.keyword,pickResults,picksStatus);
+    });
+    editorPicks.append(button);
+  }
+};
+editorButton.addEventListener('click', showEditorPickTopics);
+rankingButton.addEventListener('click', async () => {
+  rankingButton.disabled = true;
+  editorPicks.hidden = true;pickAttribution.hidden = true;pickResults.replaceChildren();
+  picksStatus.textContent = '楽天市場のランキングを取得中…';
+  try {
+    const response=await fetch('/api/picks/ranking');
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(data.error || `ランキングを取得できませんでした（HTTP ${response.status}）`);
+    renderProductCards(pickResults, Array.isArray(data.items)?data.items:[],{ranked:true});
+    pickAttribution.hidden=false;
+    const updated=data.updatedAt?`（楽天側の更新表示：${data.updatedAt}）`:'';
+    picksStatus.textContent = `${data.items.length}件のランキング商品を表示${updated}。気になる商品からAI記事を作成できます。`;
+    if(!data.items.length) picksStatus.textContent='ランキングに表示できる商品がありません。';
+  }catch(error){
+    picksStatus.textContent=(error instanceof Error?error.message:'ランキングを取得できませんでした。')+' 「商店おすすめ商品を探す」から別の商品も探せます。';
+  }finally{rankingButton.disabled=false;}
 });
 
 const saveDbCurrent = async () => {
@@ -442,10 +529,10 @@ async function loadSocial(){
 }
 async function createSocial(articleId){
   if(!requireToken())return;
-  socialStatus.textContent='雑学から始まる投稿文を作成中…';
+  socialStatus.textContent='商品に合う雑学を選定中…';
   try{
     const data=await apiRequest('/api/social/threads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({articleId})});
-    socialStatus.textContent=data.alreadyExists?'保存済みの投稿文を開きました。':'雑学→商品紹介の投稿文を作成しました。内容を確認してください。';
+    socialStatus.textContent=data.alreadyExists?'保存済みの投稿文を開きました。':'商品に関係する雑学を使って投稿文を作成しました。内容を確認してください。';
     openSocial(data.post);
     await loadSocial();
   }catch(e){socialStatus.textContent=e.message||'下書きを作成できませんでした。';}
@@ -459,7 +546,7 @@ $('#regenerate-social').addEventListener('click',async()=>{
   try {
     const data=await apiRequest(`/api/social/threads/${encodeURIComponent(currentSocial.article_id)}/regenerate`,{method:'POST'});
     openSocial(data.post);
-    socialStatus.textContent='新しい雑学＋短い商品紹介文に更新しました。D1へ保存済みです。';
+    socialStatus.textContent='別の確認済み雑学に更新しました。D1へ保存済みです。';
     await loadSocial();
   } catch(error){socialStatus.textContent=error.message||'再生成に失敗しました。';}
   finally { button.disabled=currentSocial?.status!=='draft'; }
