@@ -28,37 +28,34 @@ form{display:flex;align-items:center;gap:12px}form input{flex:1;min-height:49px}
 @media(max-width:620px){main{padding:0 14px 35px}.topbar{padding:12px 0}.brand-mini{font-size:13px}.brand-mini img{height:38px;width:38px}.topbar-links a{padding:7px 10px;font-size:11px}.hero{border-radius:23px;min-height:260px;padding:29px 21px 26px}.hero-logo{width:95px;height:95px;right:13px;top:23px;transform:rotate(9deg);border-width:3px}.hero h1{font-size:35px;max-width:230px}.hero .tagline{font-size:15px}.hero .hero-desc{font-size:12px;padding-right:6px}.hero .eyebrow{font-size:10px}.quick-nav{gap:7px;margin:16px 0}.quick-nav a{font-size:11px;padding:8px 12px}.panel{border-radius:20px;padding:19px 16px;margin:15px 0}.panel-heading{gap:9px}.section-icon{width:40px;height:40px;font-size:21px;border-radius:12px}h2{font-size:21px}form{flex-direction:column;align-items:stretch}form input{min-height:45px}.settings{grid-template-columns:1fr;gap:7px}.grid{grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:11px}.item{padding:11px;gap:8px;border-radius:17px}.item img{height:137px}.item h2{font-size:12px}.price{font-size:17px}.item .generate,.item a{font-size:12px;padding:9px}.picks-topics{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.pick-topic{padding:12px;min-height:130px}.pick-topic strong{font-size:13px}.pick-topic span{font-size:11px}.draft-row{align-items:flex-start}.footer{margin-top:30px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}button,.item,.quick-nav a{transition:none!important}}
 .topbar-links form{margin:0}.topbar-links form button{min-height:auto;min-width:0;padding:8px 14px}.topbar-links{justify-content:flex-end}
-/* v24: An illustrated, impossible little curio shop. Pure CSS: no extra network assets. */
-:root{--magic-ink:#273e3c;--magic-plum:#655277;--storybook-wood:#bb825f;--storybook-shadow:#795a68}
-body{background:radial-gradient(ellipse at 8% 6%,#f8e8ff 0,transparent 27%),radial-gradient(ellipse at 93% 15%,#dcf5ed 0,transparent 33%),radial-gradient(ellipse at 48% 70%,#fff1d2 0,transparent 44%),#f9f2e8}
-header.hero{background:radial-gradient(ellipse at 83% 12%,#b6b0e8aa,transparent 38%),linear-gradient(125deg,#3d5466,#685a80 62%,#798e88);border:2px solid #c6adcb;border-radius:45% 45% 27px 27px/24px 24px 27px 27px;box-shadow:0 8px 0 #d7b8bb,0 20px 34px #64547d26}
-header.hero:after{content:'✦  ✧   ☾   ✦  ✧';position:absolute;right:30px;top:22px;color:#fff4ccbb;font-size:25px;letter-spacing:15px;pointer-events:none}
-.hero-logo{transform:translateY(-50%) rotate(7deg);box-shadow:0 0 0 9px #ffffff1c,0 15px 30px #332f5450}
-#picks-section{isolation:isolate;overflow:visible;background:linear-gradient(160deg,#fffaf3 0%,#f4eefa 62%,#e9f4ed 100%);border:2px solid #dbc6d4;box-shadow:0 9px 0 #d2b5a2,0 20px 32px #68567b18;padding-bottom:36px}
-#picks-section:before{content:'✧';position:absolute;right:24px;top:4px;font-size:66px;line-height:1;color:#d0b2da;opacity:.7;pointer-events:none}
-#picks-section:after{content:'✦  ✧  ✦';position:absolute;right:28px;bottom:7px;letter-spacing:16px;color:#ac92c3;pointer-events:none}
-.shelf-sign{position:relative;display:flex;align-items:center;justify-content:center;gap:11px;margin:18px auto 8px;max-width:max-content;padding:10px 24px;border:2px solid #a9859d;border-radius:50% 50% 14px 14px/18px 18px 14px 14px;background:linear-gradient(#fff5da,#f9dcb5);box-shadow:0 5px 0 #b88c74;color:#573d5a;font-family:'Yu Mincho','Hiragino Mincho ProN',serif;font-weight:800;letter-spacing:.1em;text-align:center}
-.shelf-sign:before,.shelf-sign:after{content:'✧';color:#9b7caa;font-size:20px}
-.shelf-sign small{font-size:11px;letter-spacing:.02em;font-family:system-ui,sans-serif;font-weight:600;color:#765e6f}
-/* Each product rests on a floating illustrated plank. The paper card remains high contrast. */
-.shelf-grid{position:relative;gap:24px 18px;padding:12px 5px 23px;isolation:isolate}
-.shelf-grid .item{position:relative;z-index:0;overflow:visible;border-radius:20px 20px 16px 16px;border:2px solid #ddc6bd;background:linear-gradient(170deg,#fffefc,#fff9f0);box-shadow:0 6px 0 #e1bba4,0 12px 20px #81648d21;padding-bottom:18px;transition:transform .2s ease,box-shadow .2s ease}
-.shelf-grid .item:after{content:'';position:absolute;z-index:-1;left:-8px;right:-8px;bottom:-11px;height:15px;border:2px solid #9b6d61;border-radius:48% 48% 18px 18px/7px 7px 8px 8px;background:linear-gradient(180deg,#edc7a0 0%,#c78f72 46%,#ad7869 100%);box-shadow:0 7px 0 #795f72,0 10px 12px #69587830}
-.shelf-grid .item:nth-child(4n+2){transform:rotate(0.7deg)}.shelf-grid .item:nth-child(4n+3){transform:rotate(-.65deg)}
-.shelf-grid .item:hover{transform:translateY(-4px) rotate(0deg);box-shadow:0 8px 0 #d9b59d,0 18px 26px #81648d28}
-.shelf-grid .item img{background:#fff;border:1px solid #efe4d6;border-radius:14px;object-fit:contain}
-.shelf-grid .item h2{color:#283d36;line-height:1.65;font-weight:800}
-.shelf-grid .price{display:inline-block;align-self:flex-start;border:1px solid #e5d0a8;border-radius:5px 15px 15px 5px;background:#fff0ce;padding:4px 11px;color:#8b4b30;font-variant-numeric:tabular-nums}
-.shelf-grid .item a{background:#386b62;color:#fff;border-color:#24594c;font-weight:800;box-shadow:0 3px 0 #20473e}
-.shelf-grid .item a:hover{color:#fff;background:#255247}
-.shelf-grid .pick-rank{background:#ede0ff;border:1px solid #d9beea;color:#614a78}
-#editor-picks .pick-topic{background:linear-gradient(155deg,#fffaf0,#f5efff);border:2px solid #dfc9dc;border-radius:20px 20px 15px 15px;box-shadow:0 5px 0 #dcc4c0;transition:transform .15s,box-shadow .15s}
-#editor-picks .pick-topic:hover{transform:translateY(-3px);box-shadow:0 8px 0 #d6b4c0}
-#editor-picks .pick-topic:focus-visible{outline-offset:5px}
-/* The search shelf shares the visual language without burying the form in decoration. */
-#results.shelf-grid{padding-top:16px}
-@media(max-width:620px){header.hero{border-radius:34px 34px 22px 22px}header.hero:after{font-size:17px;letter-spacing:7px;right:8px;top:7px}.shelf-grid{gap:19px 11px;padding-left:2px;padding-right:2px}.shelf-grid .item{padding:10px 10px 14px}.shelf-grid .item:after{left:-4px;right:-4px;bottom:-9px;height:11px}.shelf-grid .price{padding:3px 8px}.shelf-sign{font-size:13px;padding:9px 15px;flex-wrap:wrap}.shelf-sign small{font-size:10px}#picks-section{padding-bottom:26px}#picks-section:before{font-size:35px;right:14px;top:4px}}
-@media(prefers-reduced-motion:reduce){.shelf-grid .item,#editor-picks .pick-topic{transition:none!important}}
+
+/* v25: nostalgic, hand-painted storybook general store. No magical/floating elements. */
+:root{--ink:#3b352c;--deep:#3f503b;--forest:#536c4d;--cream:#f5eddb;--paper:#fffaf0;--border:#d8c19b;--peach:#b67e50}
+body{background:radial-gradient(ellipse at 20% 8%,#fff5df 0,transparent 46%),repeating-linear-gradient(0deg,#f4ead7 0px,#f4ead7 3px,#f5ebd8 4px,#f5ebd8 8px)}
+header.hero{border:5px solid #76573a;border-radius:24px;background:linear-gradient(105deg,#415c48dd,#526b4ddc),repeating-linear-gradient(9deg,#86613d 0px,#b18356 12px,#92633d 22px);box-shadow:inset 0 0 0 3px #c69d69,0 11px 0 #c2a17e,0 20px 34px #6f53342b}
+header.hero:after{content:'余談商店　・　昔なつかし、ちいさな商店';position:absolute;right:18px;bottom:12px;top:auto;color:#fff1d8;font:700 12px 'Yu Mincho',serif;letter-spacing:.05em;pointer-events:none}
+.hero-logo{transform:translateY(-50%) rotate(3deg);border:6px solid #e9d2a4;box-shadow:0 9px 21px #241e1960}
+#picks-section{isolation:isolate;overflow:visible;background:linear-gradient(180deg,#fffaf0,#efe0c4);border:4px solid #99734f;border-radius:18px;box-shadow:inset 0 0 0 3px #e2c28d,0 10px 0 #c6a17b,0 17px 22px #5e462b22;padding-bottom:32px}
+#picks-section:before{content:'';position:absolute;right:14px;top:14px;width:43px;height:48px;background:linear-gradient(25deg,#628065,#8d9b71);border-radius:65% 12% 60% 14%;opacity:.6;transform:rotate(-25deg);pointer-events:none}
+#picks-section:after{content:'';position:absolute;right:28px;bottom:6px;width:68px;height:8px;border-radius:60%;background:#99754b36;pointer-events:none}
+.shelf-sign{border:3px double #815c3b;border-radius:10px;max-width:max-content;background:linear-gradient(#f6e1b8,#e8c794);box-shadow:inset 0 0 0 3px #fff1d0,0 4px 0 #94704b;color:#59412a;padding:10px 24px;font-family:'Yu Mincho','Hiragino Mincho ProN',serif}
+.shelf-sign:before,.shelf-sign:after{content:'❧';color:#637e54;font-size:18px}
+.shelf-sign small{color:#685943}
+/* Solid illustrated shelf rails and cabinet shadows keep the merchandise grounded. */
+.shelf-grid{gap:26px 18px;padding:19px 8px 33px;background:repeating-linear-gradient(180deg,transparent 0,transparent 318px,#8e6742 319px,#bf8c5b 326px,#684a32 333px,#d3a36b 336px,transparent 342px)}
+.shelf-grid .item{background:linear-gradient(145deg,#fffdf7,#f6ebd9);border:2px solid #d4b58a;border-radius:13px 13px 9px 9px;box-shadow:inset 0 0 0 3px #fffaf1,0 6px 0 #b99266,0 12px 16px #6346292e;padding-bottom:16px;transform:none!important}
+.shelf-grid .item:after{content:'';position:absolute;left:-9px;right:-9px;bottom:-12px;height:14px;border:1px solid #7e5235;border-radius:3px;background:linear-gradient(#cc995f 0%,#97683e 60%,#69452e 100%);box-shadow:0 5px 9px #523c2b38;z-index:-1}
+.shelf-grid .item:hover{transform:translateY(-2px)!important;box-shadow:inset 0 0 0 3px #fffaf1,0 8px 0 #b99266,0 15px 18px #63462936}
+.shelf-grid .item img{background:#fffdf7;border:1px solid #e0d0b2;border-radius:8px}
+.shelf-grid .item h2{color:#39372c}
+.shelf-grid .price{color:#794027;background:#fff0c9;border:1px dashed #b68a51;border-radius:4px 4px 10px 4px}
+.shelf-grid .pick-rank{color:#644321;background:#f1dfba;border:1px solid #c7a876}
+.shelf-grid .item a{background:#3d634e;border:1px solid #31513e;color:white}
+#editor-picks .pick-topic{background:linear-gradient(145deg,#fff6e4,#eddec2);border:2px solid #a78158;border-radius:9px;box-shadow:inset 0 0 0 2px #fff3d8,0 5px 0 #bc996f;transform:none!important}
+#editor-picks .pick-topic:hover{background:#fff2d7;transform:translateY(-2px)!important;box-shadow:0 7px 0 #bc996f}
+.shelf-back{background:#f0e1c6!important;color:#533d2a!important;border:1px solid #99734f!important;box-shadow:none;min-height:43px}
+.shelf-back[hidden]{display:none!important}
+@media(max-width:620px){header.hero{border-radius:18px}header.hero:after{font-size:9px;right:7px}.shelf-grid{background:none;gap:18px 10px;padding-left:2px;padding-right:2px}.shelf-grid .item:after{height:11px;bottom:-8px}.shelf-sign{padding:9px 12px;font-size:12px}#picks-section{padding-bottom:25px}}
 
 </style>
 </head>
@@ -68,7 +65,7 @@ header.hero:after{content:'✦  ✧   ☾   ✦  ✧';position:absolute;right:30
     <div class="topbar-links"><a href="/" target="_blank" rel="noopener">☕ 商店の店先</a><a href="/articles" target="_blank" rel="noopener">📖 読みもの</a><form action="/admin/logout" method="post"><button class="small secondary" type="submit">ログアウト</button></form></div>
   </div>
   <header class="hero" id="top">
-    <p class="eyebrow">YODAN SHOTEN ・ LITTLE CURIO SHOP</p>
+    <p class="eyebrow">YODAN SHOTEN ・ RETRO STORYBOOK SHOP</p>
     <h1>余談商店</h1><p class="tagline">知れば、ちょっと欲しくなる。</p>
     <p class="hero-desc">いつもの暮らしに、小さな発見を。<br>気になるものを見つけて、読みものにして、誰かへ届けよう。</p>
     <span class="hero-stamp">✦ 商店の作業台 ・ v22</span>
@@ -93,8 +90,9 @@ header.hero:after{content:'✦  ✧   ☾   ✦  ✧';position:absolute;right:30
       <button id="show-editor-picks" class="secondary" type="button">商店おすすめを見る</button>
       <button id="refresh-editor-picks" class="secondary" type="button">別の棚を見る</button>
     </div>
+    <div class="actions"><button id="shelf-back" class="shelf-back" type="button" hidden>← 前の棚に戻る</button><button id="topic-back" class="shelf-back" type="button" hidden>← この棚の品揃えに戻る</button></div>
     <p id="picks-status" class="help" role="status">まずはランキングを見るか、注目テーマを選んでください。</p>
-    <div class="shelf-sign" aria-hidden="true">✦ ふしぎな品々の棚 <small>のぞくだけでも、ごゆっくり</small></div>
+    <div class="shelf-sign" aria-hidden="true">❧ 店主のおすすめ棚 <small>のぞくだけでも、ごゆっくり</small></div>
     <div id="editor-picks" class="picks-topics" hidden></div>
     <div id="pick-results" class="grid shelf-grid" aria-label="ピックアップされた楽天商品"></div>
     <p class="help" id="picks-attribution" hidden>ランキングの出典：楽天市場 商品ランキングAPI。楽天側の更新時刻・掲載状況により順位や価格は変わります。</p>
@@ -112,7 +110,7 @@ header.hero:after{content:'✦  ✧   ☾   ✦  ✧';position:absolute;right:30
     <div class="panel-heading"><span class="section-icon" aria-hidden="true">✍️</span><div><small class="section-kicker">PROOFREAD YOUR STORY</small><h2>記事をととのえる</h2></div></div>
     <p class="help" id="draft-meta"></p>
     <textarea id="draft-text" rows="19" spellcheck="true" aria-label="AI記事の下書き"></textarea>
-    <div class="actions"><button id="publish-current" type="button" class="publish">保存して公開・更新</button><button id="unpublish-current" type="button" class="secondary">公開停止</button><button id="save-draft" type="button">D1に保存・更新</button><button id="save-local-draft" type="button" class="secondary">この端末にも保存</button><button id="copy-draft" type="button" class="secondary">コピー</button><button id="download-draft" type="button" class="secondary">Markdownを保存</button></div>
+    <div class="actions"><button id="back-from-editor" class="secondary" type="button">← 商品棚へ戻る</button></div><div class="actions"><button id="publish-current" type="button" class="publish">保存して公開・更新</button><button id="unpublish-current" type="button" class="secondary">公開停止</button><button id="save-draft" type="button">D1に保存・更新</button><button id="save-local-draft" type="button" class="secondary">この端末にも保存</button><button id="copy-draft" type="button" class="secondary">コピー</button><button id="download-draft" type="button" class="secondary">Markdownを保存</button></div>
     <p id="draft-status" role="status"></p><p id="publish-status" role="status"></p>
   </section>
   <section class="panel" id="saved-articles">
@@ -434,6 +432,7 @@ form.addEventListener('submit', async (e) => {
 const showEditorPickTopics = () => {
   pickResults.replaceChildren(); pickAttribution.hidden = true;
   editorPicks.hidden = false;
+  $('#topic-back').hidden=true;
   editorPicks.replaceChildren();
   picksStatus.textContent = '本日の棚は3時間ごとに自動入れ替え。違う候補は「別の棚を見る」でご覧いただけます（編集候補であり実売順位ではありません）。';
   for (const topic of rotatingPickTopics()) {
@@ -445,18 +444,24 @@ const showEditorPickTopics = () => {
     button.addEventListener('click',async()=>{
       // 編集候補を元に、実際の楽天商品データを検索する。価格や在庫は捏造しない。
       editorPicks.hidden=true;
+      $('#topic-back').hidden=false;
       await searchProducts(topic.keyword,pickResults,picksStatus);
     });
     editorPicks.append(button);
   }
 };
-editorButton.addEventListener('click',()=>{pickPage=0;showEditorPickTopics();const t=rotatingPickTopics()[0];if(t)searchProducts(t.keyword,pickResults,picksStatus);});
-$('#refresh-editor-picks').addEventListener('click',()=>{pickPage++;showEditorPickTopics();const t=rotatingPickTopics()[0];if(t)searchProducts(t.keyword,pickResults,picksStatus);});
+const shelfTrail=[];
+const shelfBack=$('#shelf-back');
+const updateShelfBack=()=>{shelfBack.hidden=shelfTrail.length===0;};
+shelfBack.addEventListener('click',()=>{if(!shelfTrail.length)return;pickPage=shelfTrail.pop();showEditorPickTopics();const topic=rotatingPickTopics()[0];if(topic)searchProducts(topic.keyword,pickResults,picksStatus);updateShelfBack();document.getElementById('picks-section').scrollIntoView({block:'start'});});
+$('#topic-back').addEventListener('click',()=>{showEditorPickTopics();$('#picks-section').scrollIntoView({block:'start'});});
+editorButton.addEventListener('click',()=>{shelfTrail.length=0;pickPage=0;showEditorPickTopics();const t=rotatingPickTopics()[0];if(t)searchProducts(t.keyword,pickResults,picksStatus);updateShelfBack();});
+$('#refresh-editor-picks').addEventListener('click',()=>{shelfTrail.push(pickPage);pickPage++;showEditorPickTopics();const t=rotatingPickTopics()[0];if(t)searchProducts(t.keyword,pickResults,picksStatus);updateShelfBack();});
 let currentPickSlot=Math.floor(Date.now()/PICK_ROTATION_MS);
 setInterval(()=>{const slot=Math.floor(Date.now()/PICK_ROTATION_MS);if(slot!==currentPickSlot){currentPickSlot=slot;pickPage=0;showEditorPickTopics();const t=rotatingPickTopics()[0];if(t)searchProducts(t.keyword,pickResults,picksStatus);}},60000);
 rankingButton.addEventListener('click', async () => {
   rankingButton.disabled = true;
-  editorPicks.hidden = true;pickAttribution.hidden = true;pickResults.replaceChildren();
+  editorPicks.hidden = true;$('#topic-back').hidden=true;pickAttribution.hidden = true;pickResults.replaceChildren();
   picksStatus.textContent = '楽天市場のランキングを取得中…';
   try {
     const response=await fetch('/api/picks/ranking');
@@ -665,5 +670,6 @@ $('#publish-social').addEventListener('click',async()=>{
   }catch(e){socialStatus.textContent=e.message||'投稿できませんでした。';}
   finally{button.disabled=currentSocial?.status!=='draft';}
 });
+$('#back-from-editor').addEventListener('click',()=>{$('#editor').hidden=true;$('#picks-section').scrollIntoView({block:'start'});});
 renderSavedDrafts();
 </script></body></html>
