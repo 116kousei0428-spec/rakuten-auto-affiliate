@@ -54,10 +54,11 @@ form{display:flex;align-items:center;gap:12px}form input{flex:1;min-height:49px}
   </section>
   <section class="panel" id="picks-section">
     <div class="panel-heading"><span class="section-icon" aria-hidden="true">🌿</span><div><small class="section-kicker">THE SHOPKEEPER'S PICKS</small><h2>人気のもの・商店おすすめ <span class="new-mark">PICK UP</span></h2></div></div>
-    <p class="help">人気商品は楽天市場の公式ランキングAPIから取得します。商店おすすめは独自の編集候補で、売上順位や今後の流行を保証するものではありません。</p>
+    <p class="help">人気商品は楽天市場の公式ランキングAPIから取得します。商店おすすめは3時間ごとにテーマが入れ替わります。売上順位や今後の流行を保証するものではありません。</p>
     <div class="actions" style="margin-top:12px">
       <button id="load-ranking" type="button">楽天ランキングを見る</button>
       <button id="show-editor-picks" class="secondary" type="button">商店おすすめを見る</button>
+      <button id="refresh-editor-picks" class="secondary" type="button">別の棚を見る</button>
     </div>
     <p id="picks-status" class="help" role="status">まずはランキングを見るか、注目テーマを選んでください。</p>
     <div id="editor-picks" class="picks-topics" hidden></div>
@@ -337,8 +338,24 @@ const CURATED_PICK_TOPICS = [
   { name: 'コーヒードリッパー', keyword: 'コーヒー ドリッパー', reason: '抽出の雑学とセットで紹介しやすい' },
   { name: '小型モバイルバッテリー', keyword: 'モバイルバッテリー 小型', reason: '充電規格の雑学と実用性を組み合わせられる' },
   { name: '晴雨兼用折りたたみ傘', keyword: '晴雨兼用 折りたたみ傘', reason: 'UV加工や素材の話と関連づけられる' },
-  { name: 'ロボット掃除機', keyword: 'ロボット掃除機', reason: 'センサーの仕組みと家事の利便性を説明できる' }
+  { name: 'ロボット掃除機', keyword: 'ロボット掃除機', reason: 'センサーの仕組みと家事の利便性を説明できる' },
+  { name: '多肉植物', keyword: '多肉植物', reason: '植物が水を蓄える仕組みから話を広げられる' },
+  { name: '万年筆', keyword: '万年筆', reason: '筆記具の歴史や構造が楽しい' },
+  { name: 'スパイスセット', keyword: 'スパイス セット', reason: '香辛料の原料と調理の話から選べる' },
+  { name: '双眼鏡', keyword: '双眼鏡', reason: '光学の仕組みとレジャーの接点がある' },
+  { name: '紅茶ポット', keyword: '紅茶 ティーポット', reason: '茶葉の違いや抽出方法を知る入口に' },
+  { name: '包丁', keyword: '包丁', reason: '刃の形や用途で選び方が変わる' },
+  { name: '腕時計', keyword: '腕時計', reason: '時を刻む仕組みとデザインの話ができる' },
+  { name: 'はちみつ', keyword: 'はちみつ', reason: 'ミツバチと花の話から始められる' }
 ];
+// A stable rotation per three-hour window avoids showing the same fixed eight picks all day.
+const PICK_ROTATION_MS=3*60*60*1000;
+let pickPage=0;
+const rotatingPickTopics=()=>{
+  const slot=Math.floor(Date.now()/PICK_ROTATION_MS);
+  const list=CURATED_PICK_TOPICS.map((topic,index)=>({topic,score:(index*7919+slot*3571)%10007})).sort((a,b)=>a.score-b.score);
+  return list.slice((pickPage%2)*4,(pickPage%2)*4+4).map(v=>v.topic);
+};
 const renderProductCards = (target, items, { ranked = false } = {}) => {
   target.replaceChildren();
   for (const item of items) {
@@ -384,8 +401,8 @@ const showEditorPickTopics = () => {
   pickResults.replaceChildren(); pickAttribution.hidden = true;
   editorPicks.hidden = false;
   editorPicks.replaceChildren();
-  picksStatus.textContent = '以下は余談商店のおすすめ候補です。販売実績やトレンド調査に基づくランキングではありません。';
-  for (const topic of CURATED_PICK_TOPICS) {
+  picksStatus.textContent = '本日の棚は3時間ごとに自動入れ替え。違う候補は「別の棚を見る」でご覧いただけます（編集候補であり実売順位ではありません）。';
+  for (const topic of rotatingPickTopics()) {
     const button = document.createElement('button');button.type='button';button.className='pick-topic';
     const name=document.createElement('strong');name.textContent=topic.name;
     const reason=document.createElement('span');reason.textContent=topic.reason;
@@ -399,7 +416,10 @@ const showEditorPickTopics = () => {
     editorPicks.append(button);
   }
 };
-editorButton.addEventListener('click', showEditorPickTopics);
+editorButton.addEventListener('click',()=>{pickPage=0;showEditorPickTopics();const t=rotatingPickTopics()[0];if(t)searchProducts(t.keyword,pickResults,picksStatus);});
+$('#refresh-editor-picks').addEventListener('click',()=>{pickPage++;showEditorPickTopics();const t=rotatingPickTopics()[0];if(t)searchProducts(t.keyword,pickResults,picksStatus);});
+let currentPickSlot=Math.floor(Date.now()/PICK_ROTATION_MS);
+setInterval(()=>{const slot=Math.floor(Date.now()/PICK_ROTATION_MS);if(slot!==currentPickSlot){currentPickSlot=slot;pickPage=0;showEditorPickTopics();const t=rotatingPickTopics()[0];if(t)searchProducts(t.keyword,pickResults,picksStatus);}},60000);
 rankingButton.addEventListener('click', async () => {
   rankingButton.disabled = true;
   editorPicks.hidden = true;pickAttribution.hidden = true;pickResults.replaceChildren();

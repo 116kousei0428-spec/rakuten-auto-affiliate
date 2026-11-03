@@ -16,7 +16,7 @@ test('health checks presence without revealing secrets', async () => {
   const payload = await r.json();
   assert.equal(r.status, 200);
   assert.equal(payload.apiConfigured, true);
-  assert.equal(payload.release, 'v22');
+  assert.equal(payload.release, 'v23');
   assert.ok(!JSON.stringify(payload).includes('app-private'));
   assert.ok(!JSON.stringify(payload).includes('access-private'));
 });
@@ -26,7 +26,7 @@ test('missing keys returns 503', async () => {
 test('root renders public product browsing without the private editor',async()=>{
  const r=await worker.fetch(new Request('https://site.test/'),env);
  assert.equal(r.status,200);
- assert.equal(r.headers.get('X-Rakuten-UI-Version'),'v22');
+ assert.equal(r.headers.get('X-Rakuten-UI-Version'),'v23');
  assert.equal(r.headers.get('Cache-Control'),'no-store');
  const html=await r.text();
  assert.match(html,/id="search-form"/);
@@ -36,7 +36,7 @@ test('root renders public product browsing without the private editor',async()=>
 test('index.html routes to same public view',async()=>{
  const r=await worker.fetch(new Request('https://site.test/index.html'),env);
  assert.equal(r.status,200);
- assert.equal(r.headers.get('X-Rakuten-UI-Version'),'v22');
+ assert.equal(r.headers.get('X-Rakuten-UI-Version'),'v23');
  assert.match(await r.text(),/id="admin-entry"/);
 });
 test('non-home static requests go to assets', async () => {
@@ -215,7 +215,7 @@ test('AI returns Japanese affiliate article draft with disclosure and trusted li
     assert.equal(parameters.messages[0].role, 'system');
     assert.match(parameters.messages[1].content, /楽天テストイヤホン/);
     assert.ok(!JSON.stringify(parameters).includes(adminEnv.AI_ADMIN_TOKEN));
-    return { response: '## 商品の概要\nこれは提供された商品情報に基づく紹介文です。購入の前に販売ページで詳細と最新情報を確認してください。\n\n## まとめ\nご自身の用途に合うか確認することが大切です。' };
+    return { response: "## 今日の余談\\n今日は身近な道具の話をします。何を選び、どんな場面で使いたいか考えてみましょう。\\n\\n## この品とのつながり\\n商品説明によると、日常で使うための商品です。使う場面を想像して選びたいですね。\\n\\n## お買い物前のひとこと\\n対応条件や最新価格は購入先で確かめましょう。説明にない点は決めつけません。\\n\\n## 店主のしめくくり\\n気になる一品は、いったん棚に置いて比べてみるのもよいでしょう。" };
   } } };
   const r = await worker.fetch(articleRequest(), e);
   assert.equal(r.status, 200);
@@ -228,7 +228,7 @@ test('AI returns Japanese affiliate article draft with disclosure and trusted li
   assert.ok(!JSON.stringify(payload).includes(adminEnv.AI_ADMIN_TOKEN));
 });
 test('AI handles different response schema and empty text explicitly', async () => {
-  const good = { ...adminEnv, AI: { run: async () => ({ choices: [{ message: { content: '## 商品の概要\n商品情報をもとに記事を生成しました。購入前に価格、在庫、送料、仕様を確認しましょう。記事の記述を確認してください。' } }] }) } };
+  const good = { ...adminEnv, AI: { run: async () => ({ choices: [{ message: { content: "## 今日の余談\\n今日は身近な道具の話をします。何を選び、どんな場面で使いたいか考えてみましょう。\\n\\n## この品とのつながり\\n商品説明によると、日常で使うための商品です。使う場面を想像して選びたいですね。\\n\\n## お買い物前のひとこと\\n対応条件や最新価格は購入先で確かめましょう。説明にない点は決めつけません。\\n\\n## 店主のしめくくり\\n気になる一品は、いったん棚に置いて比べてみるのもよいでしょう。" } }] }) } };
   assert.equal((await worker.fetch(articleRequest(), good)).status, 200);
   const empty = { ...adminEnv, AI: { run: async () => ({ response: '' }) } };
   const r = await worker.fetch(articleRequest(), empty);
