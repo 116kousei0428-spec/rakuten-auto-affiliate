@@ -16,5 +16,10 @@
       "database_name": "rakuten-affiliate-db",
       "database_id": "81926891-4dd8-4cc2-b966-e530d2912452"
     }
-  ]
+  ],
+  "triggers": {
+    "crons": [
+      "*/30 * * * *"
+    ]
+  }
 }

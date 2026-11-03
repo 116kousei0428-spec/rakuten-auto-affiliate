@@ -38,10 +38,10 @@ form{display:flex;align-items:center;gap:12px}form input{flex:1;min-height:49px}
     <p class="eyebrow">YODAN SHOTEN ・ LITTLE CURIO SHOP</p>
     <h1>余談商店</h1><p class="tagline">知れば、ちょっと欲しくなる。</p>
     <p class="hero-desc">いつもの暮らしに、小さな発見を。<br>気になるものを見つけて、読みものにして、誰かへ届けよう。</p>
-    <span class="hero-stamp">✦ 商店の作業台 ・ v21</span>
+    <span class="hero-stamp">✦ 商店の作業台 ・ v22</span>
     <img class="hero-logo" src="/yodan-logo.webp" alt="本と猫の余談商店ロゴ">
   </header>
-  <nav class="quick-nav" aria-label="作業台のメニュー"><span class="nav-lead">棚をめぐる ↗</span><a href="#search-section">🔎 商品さがし</a><a href="#picks-section">🌿 商店おすすめ</a><a href="#article-settings">📝 記事づくり</a><a href="#saved-articles">📚 記事の棚</a><a href="#threads-section">🧵 投稿づくり</a></nav>
+  <nav class="quick-nav" aria-label="作業台のメニュー"><span class="nav-lead">棚をめぐる ↗</span><a href="#search-section">🔎 商品さがし</a><a href="#picks-section">🌿 商店おすすめ</a><a href="#article-settings">📝 記事づくり</a><a href="#saved-articles">📚 記事の棚</a><a href="#threads-section">🧵 投稿づくり</a><a href="#automation-section">⚙️ 自動投稿</a></nav>
   <p class="page-intro">ようこそ。今日はどんな面白いものに出会えるかな？</p>
   <section class="panel search-panel" id="search-section">
     <div class="panel-heading"><span class="section-icon" aria-hidden="true">🔎</span><div><small class="section-kicker">FIND SOMETHING NICE</small><h2>商品をさがす</h2></div></div>
@@ -88,6 +88,13 @@ form{display:flex;align-items:center;gap:12px}form input{flex:1;min-height:49px}
     <p id="db-status" role="status"></p>
     <div id="db-list" class="draft-list"></div>
   </section>
+  <section class="panel" id="automation-section">
+    <div class="panel-heading"><span class="section-icon">⚙️</span><div><small class="section-kicker">AUTOMATIC THREADS</small><h2>Threads自動投稿</h2></div></div>
+    <p class="help">初期状態は停止。公開ドメイン設定とAPI接続を確認してから有効にしてください。日本時間の30分単位で分散実行します。画像は個別の転載許可を確認できる場合だけ使用し、現時点の自動投稿はテキストのみです。</p>
+    <div class="settings"><label for="auto-target">1日の目標投稿数</label><input type="number" min="1" max="48" value="20" id="auto-target" style="max-width:150px"><label for="auto-enabled">自動投稿</label><label class="case-option" style="margin:0"><input type="checkbox" id="auto-enabled"><span class="case-switch"></span><span>有効にする</span></label></div>
+    <div class="actions"><button id="auto-refresh" class="secondary" type="button">状態を確認</button><button id="auto-save" type="button">設定を保存</button><button id="auto-run" class="secondary" type="button">今すぐ1件テスト投稿（公開）</button></div>
+    <p id="auto-status" class="help" role="status">設定を取得していません。</p><div id="auto-history" class="draft-list"></div>
+  </section>
   <section class="panel" id="threads-section">
     <div class="panel-heading"><span class="section-icon" aria-hidden="true">🧵</span><div><small class="section-kicker">SEND A LITTLE STORY</small><h2>Threadsの投稿をつくる</h2></div></div>
     <p class="help">D1に公開した記事から、雑学と商品紹介を自然な文章で生成します。見出しや区切り線、末尾のPR注記は付きません。「案件」をONにした場合だけ、冒頭に【PR】を付けます。ON/OFFは生成・再生成時に反映され、初期状態はOFFです。</p>
@@ -132,6 +139,25 @@ form{display:flex;align-items:center;gap:12px}form input{flex:1;min-height:49px}
   </section>
   <footer class="footer"><div class="footer-brand">🐈 余談商店 / YODAN SHOTEN</div><p>知れば、ちょっと欲しくなる。<br>掲載情報は公開前に確認してください。価格・仕様は楽天市場の商品ページで再確認を。この作業台は管理者ログインで保護されています。</p><p><a href="/shop" target="_blank" rel="noopener">商店の店先を見る</a> ・ <a href="/articles" target="_blank" rel="noopener">公開中の読みもの</a></p></footer>
 </main><script>const $ = (selector) => document.querySelector(selector);
+const autoStatus=$('#auto-status'),autoHistory=$('#auto-history');
+async function loadAutoSettings(){
+  try{const r=await fetch('/api/automation',{credentials:'same-origin'});const d=await r.json();if(!r.ok)throw new Error(d.error||'設定取得エラー');
+    $('#auto-enabled').checked=d.enabled;$('#auto-target').value=d.dailyTarget;
+    autoStatus.textContent=`${d.enabled?'稼働':'停止'}｜本日成功 ${d.successToday}件／目標 ${d.dailyTarget}件｜日本時間 ${d.today}`;
+    autoHistory.replaceChildren();for(const log of d.logs||[]){const e=document.createElement('p');e.className='help';e.textContent=`${log.slot} ${log.status} ${log.article_id||''} ${log.detail||''}`;autoHistory.appendChild(e);}
+  }catch(e){autoStatus.textContent=e.message;}
+}
+$('#auto-refresh').onclick=loadAutoSettings;
+$('#auto-save').onclick=async()=>{const target=Number($('#auto-target').value),enabled=$('#auto-enabled').checked;
+  if(!Number.isInteger(target)||target<1||target>48){autoStatus.textContent='投稿数は1〜48件で指定。';return;}
+  try{const r=await fetch('/api/automation',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled,dailyTarget:target})});const d=await r.json();if(!r.ok)throw new Error(d.error);await loadAutoSettings();}
+  catch(e){autoStatus.textContent=e.message;}
+};
+$('#auto-run').onclick=async()=>{if(!confirm('Threadsへ商品紹介を実際に1件投稿します。よろしいですか？'))return;
+  autoStatus.textContent='実行中…';try{const r=await fetch('/api/automation',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'runOnce'})});const d=await r.json();autoStatus.textContent=d.ok?`投稿完了：${d.articleId||d.reason}`:`投稿未完了：${d.reason||'エラー'}`;}
+  catch(e){autoStatus.textContent=e.message;}await loadAutoSettings();
+};
+loadAutoSettings();
 const form = $('#search-form');
 const status = $('#status');
 const results = $('#results');
