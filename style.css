@@ -47,3 +47,37 @@ header.hero:after{content:'余談商店　・　昔なつかし、ちいさな�
 .shelf-back{background:#f0e1c6!important;color:#533d2a!important;border:1px solid #99734f!important;box-shadow:none;min-height:43px}
 .shelf-back[hidden]{display:none!important}
 @media(max-width:620px){header.hero{border-radius:18px}header.hero:after{font-size:9px;right:7px}.shelf-grid{background:none;gap:18px 10px;padding-left:2px;padding-right:2px}.shelf-grid .item:after{height:11px;bottom:-8px}.shelf-sign{padding:9px 12px;font-size:12px}#picks-section{padding-bottom:25px}}
+
+/* v26: storybook shop — artwork from user-approved visual reference */
+:root{--ink:#3e2d20;--muted:#756753;--paper:#fff8e9;--cream:#f8efdc;--linen:#ecddc0;--border:#b79a72;--forest:#47623e;--deep:#354b30;--peach:#b67539;--shadow:0 9px 25px #63452124}
+body{background:linear-gradient(90deg,#aa80502e,transparent 9%,transparent 91%,#aa80502e),repeating-linear-gradient(0deg,#f7edd9,#f7edd9 38px,#f2e6d2 39px,#f7edd9 43px)!important;color:var(--ink)}
+main{max-width:1220px!important;background:#fffbf1a8;box-shadow:0 0 50px #70502b22;padding-bottom:50px!important}
+.topbar{background:#493622;color:#f8e4b7;padding:10px 20px;margin:0 -14px 14px;border-bottom:5px solid #a87b48}
+.topbar a{color:#fff4d9!important}.topbar-links a{background:#674b2e!important;color:#fff4d9!important;border-color:#a38255!important}
+header.hero{background:#4d351e url('/shop-hero.webp') center top/cover no-repeat!important;min-height:clamp(280px,38vw,450px)!important;border:9px ridge #7d5530!important;border-radius:11px!important;box-shadow:inset 0 0 0 3px #e9bc75,0 15px 24px #4e341f44!important;margin:5px 0 12px!important;padding:0!important}
+header.hero:before,header.hero:after{display:none!important}
+header.hero h1,header.hero .eyebrow,header.hero .tagline,header.hero .hero-desc,header.hero .hero-stamp,header.hero .hero-caption{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip-path:inset(50%)!important;white-space:nowrap!important;padding:0!important;margin:0!important}
+.quick-nav{background:linear-gradient(#956b3d,#654426)!important;box-shadow:0 6px 0 #4b331e,inset 0 2px 0 #ddad72;border:3px solid #664526;border-radius:7px;padding:10px!important;justify-content:center;margin:8px 0 27px!important}
+.quick-nav .nav-lead{display:none}.quick-nav a{background:linear-gradient(#fff9e9,#e9d6af)!important;color:#4d3926!important;border:2px solid #a88355!important;border-radius:8px!important;box-shadow:0 3px 0 #53361e;font-family:'Yu Mincho',serif;font-size:14px!important;min-height:42px;display:inline-flex;align-items:center}
+.page-intro{color:#8e6940!important}
+h2,h3{color:#50391f!important;font-family:'Yu Mincho','Hiragino Mincho ProN',serif}
+.panel{background:linear-gradient(135deg,#fffaf0,#f3e5c9)!important;border:3px solid #ae8d61!important;border-radius:9px!important;box-shadow:0 7px 0 #9170492d,0 15px 22px #5539231a!important}
+.panel-heading{border-bottom:2px solid #d5bb8d;padding-bottom:12px;margin-bottom:15px!important}
+.section-icon{background:#e9d2aa!important;border:2px solid #ab8251!important;border-radius:5px!important}
+.section-kicker{color:#9b6538!important}
+button:not(:disabled),.item a,.daily-button{border-radius:8px!important;background:#506640;color:#fff9e8;box-shadow:0 3px 0 #35422e!important}
+button.secondary,.shelf-back{background:#eee0c0!important;color:#593e25!important;border:1px solid #a7824f!important;box-shadow:0 3px 0 #a7824f!important}
+.shelf-sign{font-family:'Yu Mincho',serif;background:#62432a!important;color:#fff1cd!important;border:5px ridge #c19356!important;border-radius:9px!important;font-size:22px!important;box-shadow:0 7px 16px #38271333}
+.shelf-grid{background:linear-gradient(180deg,#e4cba15e,#d5ad745e)!important;border:7px ridge #956b3c!important;border-radius:4px!important;padding:15px!important;gap:20px 14px!important}
+.shelf-grid .item,.picks-topics .pick-topic{background:linear-gradient(135deg,#fff9ed,#f1ddba)!important;border:2px solid #b58a57!important;border-radius:6px!important;box-shadow:4px 5px 0 #8e62383d!important}
+.shelf-grid .item:after{background:linear-gradient(#c18d54,#83562f)!important}
+.item img{background:#fffaf0!important;border:1px solid #dfc49b!important;border-radius:3px!important}
+.price{color:#995025!important}.item a{background:#6b5035!important;color:#fff9e9!important}
+.footer{background:#5a402b;color:#f4e6ce;border-top:7px solid #9f7749;padding:25px!important;border-radius:6px}.footer a{color:#f7dda7}
+.daily-feature{display:grid;grid-template-columns:1.15fr 1fr;gap:16px;align-items:stretch;margin:22px 0 27px;background:#543a22;border:8px ridge #956639;padding:15px;box-shadow:0 9px 20px #60402433}
+.daily-feature-copy{position:relative;background:linear-gradient(135deg,#49603f,#2e4331);color:#fff1d1;border:2px solid #b9a16f;padding:20px 25px;min-height:190px}
+.daily-label{font-size:12px;color:#f5d593;letter-spacing:.15em}.daily-feature h2{color:#fff0ce;font-size:clamp(24px,3vw,36px);border-bottom:1px solid #b7a077;padding:12px 0}.daily-feature p{font-size:13px;line-height:1.8}.daily-button{display:inline-block;text-decoration:none;padding:9px 20px;background:#795334!important;border:1px solid #c69a62!important}
+.daily-paper{background:#f5e8cb;box-shadow:inset 0 0 0 2px #be9c6d,0 3px 7px #241a1138;padding:22px 26px;transform:rotate(-.5deg);font-family:'Yu Mincho',serif}
+.daily-paper span{color:#9a663d;font-weight:700}.daily-paper h3{font-size:22px;line-height:1.5;margin:12px 0}.daily-paper p{font-size:13px;color:#59442d;margin:0}
+@media(max-width:700px){main{padding:0 10px 24px!important}.topbar{margin:0 -10px 8px}.topbar-links{gap:4px}.topbar-links a{font-size:10px!important;padding:5px!important}header.hero{min-height:clamp(190px,43vw,310px)!important;border-width:5px!important;background-position:center top!important}.quick-nav{gap:7px!important}.quick-nav a{font-size:11px!important;padding:7px 10px!important;min-height:36px}.daily-feature{grid-template-columns:1fr;padding:9px;gap:8px}.daily-feature-copy{min-height:140px;padding:15px}.daily-paper{padding:18px}.shelf-grid{padding:7px!important;gap:14px 8px!important}.panel{padding:16px!important}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
