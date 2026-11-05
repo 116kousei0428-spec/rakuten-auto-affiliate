@@ -342,8 +342,13 @@ const loadDbDrafts = async () => {
         const socialBtn = document.createElement('button');
         socialBtn.type = 'button'; socialBtn.className = 'secondary small';
         socialBtn.textContent = '雑学→Threads投稿文';
-        socialBtn.addEventListener('click', () => createSocial(entry.id));
-        line.append(socialBtn);
+        const socialProgress = document.createElement('span');
+        socialProgress.className = 'help social-generation-progress';
+        socialProgress.setAttribute('role', 'status');
+        socialProgress.setAttribute('aria-live', 'polite');
+        socialProgress.style.flex = '1 1 100%';
+        socialBtn.addEventListener('click', () => createSocial(entry.id, socialBtn, socialProgress));
+        line.append(socialBtn, socialProgress);
       }
       if (entry.status === 'published') {
         const a = document.createElement('a'); a.href = `/articles/${encodeURIComponent(entry.id)}`;
@@ -635,15 +640,29 @@ async function loadSocial(){
     }
   }catch(e){socialStatus.textContent=e.message||'読み込みに失敗しました。';}
 }
-async function createSocial(articleId){
-  if(!requireToken())return;
-  socialStatus.textContent='商品に合う雑学を選定中…';
+let socialGenerationBusy = false;
+async function createSocial(articleId, button, progress){
+  if(!requireToken() || socialGenerationBusy)return;
+  socialGenerationBusy = true;
+  if(button){ button.disabled = true; button.textContent = '処理中…'; button.setAttribute('aria-busy','true'); }
+  const pending = '雑学の投稿文を確認・生成中…';
+  socialStatus.textContent = pending;
+  if(progress)progress.textContent = pending;
   try{
     const data=await apiRequest('/api/social/threads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({articleId,isPromotion:isSponsoredPost.checked})});
-    socialStatus.textContent=data.alreadyExists?'保存済みの投稿文を開きました。案件スイッチを反映するには「別の雑学で再生成」を押してください。':'商品に関係する雑学を使って文章を作成しました。内容を確認してください。';
+    const message=data.alreadyExists?'保存済みの投稿文を開きました。再生成する場合は「別の雑学で再生成」を押してください。':'雑学の投稿文を生成しました。内容を確認してください。';
+    if(progress)progress.textContent=message;
     openSocial(data.post);
     await loadSocial();
-  }catch(e){socialStatus.textContent=e.message||'下書きを作成できませんでした。';}
+    socialStatus.textContent=message;
+  }catch(e){
+    const message='生成失敗：'+(e.message||'下書きを作成できませんでした。');
+    socialStatus.textContent=message;
+    if(progress)progress.textContent=message;
+  }finally{
+    socialGenerationBusy=false;
+    if(button){button.disabled=false;button.textContent='雑学→Threads投稿文';button.removeAttribute('aria-busy');}
+  }
 }
 $('#load-social').addEventListener('click',loadSocial);
 $('#regenerate-social').addEventListener('click',async()=>{
@@ -651,13 +670,15 @@ $('#regenerate-social').addEventListener('click',async()=>{
   if(currentSocial.status!=='draft') {socialStatus.textContent='投稿済みの文章は再生成できません。';return;}
   if(!confirm('現在のThreads投稿下書きを新しい雑学・紹介文で上書きしますか？編集済みの文章は失われます。'))return;
   const button=$('#regenerate-social');button.disabled=true;
+  button.textContent='雑学を再生成中…';button.setAttribute('aria-busy','true');
+  socialStatus.textContent='雑学の投稿文を再生成中…';
   try {
     const data=await apiRequest(`/api/social/threads/${encodeURIComponent(currentSocial.article_id)}/regenerate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({isPromotion:isSponsoredPost.checked})});
     openSocial(data.post);
-    socialStatus.textContent='案件スイッチに合わせて文章を再生成し、D1に保存しました。';
     await loadSocial();
-  } catch(error){socialStatus.textContent=error.message||'再生成に失敗しました。';}
-  finally { button.disabled=currentSocial?.status!=='draft'; }
+    socialStatus.textContent='再生成完了：投稿文をD1に保存しました。';
+  } catch(error){socialStatus.textContent='再生成失敗：'+(error.message||'再生成に失敗しました。');}
+  finally {button.disabled=currentSocial?.status!=='draft';button.textContent='別の雑学で再生成';button.removeAttribute('aria-busy');}
 });
 $('#check-threads-connection').addEventListener('click',async()=>{
   if(!requireToken()) return;
