@@ -8,7 +8,21 @@ const draftText = $('#draft-text');
 const draftMeta = $('#draft-meta');
 const draftStatus = $('#draft-status');
 const draftList = $('#draft-list');
-const yen = (n) => typeof n === 'number' ? `${n.toLocaleString('ja-JP')}円` : '価格未取得';
+const toPriceNumber = (value) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return Math.round(value);
+  if (typeof value === 'string') {
+    const normalized = value.replace(/[¥￥,\s円]/g, '');
+    if (/^[-+]?\d+(?:\.\d+)?$/.test(normalized)) {
+      const parsed = Number(normalized);
+      if (Number.isFinite(parsed)) return Math.round(parsed);
+    }
+  }
+  return null;
+};
+const yen = (n) => {
+  const value = toPriceNumber(n);
+  return value === null ? '価格未取得' : `${value.toLocaleString('ja-JP')}円`;
+};
 const safe = (value) => { try { const u = new URL(value); return u.protocol === 'https:' ? u.href : ''; } catch { return ''; } };
 const setStatus = (message) => { status.textContent = message; };
 const DRAFT_STORAGE_KEY = 'rakuten_ai_article_drafts_v11';

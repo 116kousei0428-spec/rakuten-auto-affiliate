@@ -68,8 +68,9 @@ body{background:linear-gradient(90deg,#aa80502e,transparent 9%,transparent 91%,#
 main{max-width:1220px!important;background:#fffbf1a8;box-shadow:0 0 50px #70502b22;padding-bottom:50px!important}
 .topbar{background:#493622;color:#f8e4b7;padding:10px 20px;margin:0 -14px 14px;border-bottom:5px solid #a87b48}
 .topbar a{color:#fff4d9!important}.topbar-links a{background:#674b2e!important;color:#fff4d9!important;border-color:#a38255!important}
-header.hero{background:#4d351e url('/shop-hero.webp') center top/cover no-repeat!important;min-height:clamp(280px,38vw,450px)!important;border:9px ridge #7d5530!important;border-radius:11px!important;box-shadow:inset 0 0 0 3px #e9bc75,0 15px 24px #4e341f44!important;margin:5px 0 12px!important;padding:0!important}
+header.hero{background:#4d351e url('/shop-hero.webp') center top/cover no-repeat!important;min-height:clamp(280px,38vw,450px)!important;border:9px ridge #7d5530!important;border-radius:11px!important;box-shadow:inset 0 0 0 3px #e9bc75,0 15px 24px #4e341f44!important;margin:5px 0 12px!important;padding:0!important;position:relative!important;overflow:hidden!important}
 header.hero:before,header.hero:after{display:none!important}
+header.hero .hero-scene{position:absolute!important;left:clamp(9px,1.2vw,16px)!important;right:clamp(9px,1.2vw,16px)!important;top:clamp(9px,1.2vw,16px)!important;bottom:clamp(9px,1.2vw,16px)!important;width:calc(100% - (clamp(9px,1.2vw,16px) * 2))!important;height:calc(100% - (clamp(9px,1.2vw,16px) * 2))!important;object-fit:cover!important;object-position:center center!important;display:block!important;border:2px solid #3f2918!important;box-shadow:inset 0 0 0 2px #e0b47655!important;z-index:0!important}
 header.hero h1,header.hero .eyebrow,header.hero .tagline,header.hero .hero-desc,header.hero .hero-stamp,header.hero .hero-caption{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip-path:inset(50%)!important;white-space:nowrap!important;padding:0!important;margin:0!important}
 .quick-nav{background:linear-gradient(#956b3d,#654426)!important;box-shadow:0 6px 0 #4b331e,inset 0 2px 0 #ddad72;border:3px solid #664526;border-radius:7px;padding:10px!important;justify-content:center;margin:8px 0 27px!important}
 .quick-nav .nav-lead{display:none}.quick-nav a{background:linear-gradient(#fff9e9,#e9d6af)!important;color:#4d3926!important;border:2px solid #a88355!important;border-radius:8px!important;box-shadow:0 3px 0 #53361e;font-family:'Yu Mincho',serif;font-size:14px!important;min-height:42px;display:inline-flex;align-items:center}
@@ -95,10 +96,6 @@ button.secondary,.shelf-back{background:#eee0c0!important;color:#593e25!importan
 .daily-paper span{color:#9a663d;font-weight:700}.daily-paper h3{font-size:22px;line-height:1.5;margin:12px 0}.daily-paper p{font-size:13px;color:#59442d;margin:0}
 @media(max-width:700px){main{padding:0 10px 24px!important}.topbar{margin:0 -10px 8px}.topbar-links{gap:4px}.topbar-links a{font-size:10px!important;padding:5px!important}header.hero{min-height:clamp(190px,43vw,310px)!important;border-width:5px!important;background-position:center top!important}.quick-nav{gap:7px!important}.quick-nav a{font-size:11px!important;padding:7px 10px!important;min-height:36px}.daily-feature{grid-template-columns:1fr;padding:9px;gap:8px}.daily-feature-copy{min-height:140px;padding:15px}.daily-paper{padding:18px}.shelf-grid{padding:7px!important;gap:14px 8px!important}.panel{padding:16px!important}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
-
-/* v27: 黒板内の店主と看板猫。既存の文字、枠、寸法は維持する。 */
-.daily-feature-copy{background-image:linear-gradient(90deg,rgba(45,65,48,.98) 0%,rgba(45,65,48,.96) 39%,rgba(45,65,48,.67) 62%,rgba(45,65,48,.04) 100%),url('/blackboard-shopkeeper.webp')!important;background-position:center,right center!important;background-size:cover,cover!important;background-repeat:no-repeat!important}
-
 </style>
 </head>
 <body><main>
@@ -112,6 +109,7 @@ button.secondary,.shelf-back{background:#eee0c0!important;color:#593e25!importan
     <p class="hero-desc">いつもの暮らしに、小さな発見を。<br>気になるものを見つけたら、お気に入りの一品を探してみよう。</p>
     <span class="hero-stamp">☕ 今日も、一杯の余談を。</span>
     <span class="hero-caption">白髪の店主と、気まぐれな看板猫がお出迎え。</span>
+    <img class="hero-scene" src="/hero-blackboard-scene.png" alt="コーヒーを飲む丸眼鏡の店主と猫のイラスト">
   </header>
   <nav class="quick-nav" aria-label="お店のメニュー"><span class="nav-lead">棚をめぐる ↗</span><a href="#search-section">🔎 商品さがし</a><a href="#picks-section">🌿 商店おすすめ</a><a href="/daily">☕ 一日ひとつの雑学</a><a href="/shop">📚 商店の読みもの</a></nav>
   <section class="daily-feature" aria-labelledby="daily-head"><div class="daily-feature-copy"><span class="daily-label">店主から、本日の一杯</span><h2 id="daily-head">一日ひとつの雑学</h2><p>毎日ひとつ。暮らしを少し豊かにする、小さな発見を。</p><a href="/daily" class="daily-button">今日の余談を読む →</a></div><div class="daily-paper"><span>☕ 本日の余談</span><h3 id="daily-title">今日の小話を準備しています。</h3><p id="daily-excerpt">店主が一日一つ、こだわりの雑学を並べます。</p></div></section>
@@ -152,7 +150,8 @@ const $=(selector)=>document.querySelector(selector);
 const form=$('#search-form'),status=$('#status'),results=$('#results');
 const pickResults=$('#pick-results'),picksStatus=$('#picks-status'),editorPicks=$('#editor-picks');
 const pickAttribution=$('#picks-attribution'),rankingButton=$('#load-ranking'),editorButton=$('#show-editor-picks');
-const yen=(n)=>typeof n==='number'?`${n.toLocaleString('ja-JP')}円`:'価格未取得';
+const toPriceNumber=(value)=>{if(typeof value==='number'&&Number.isFinite(value))return Math.round(value);if(typeof value==='string'){const normalized=value.replace(/[¥￥,\s円]/g,'');if(/^[-+]?\d+(?:\.\d+)?$/.test(normalized)){const parsed=Number(normalized);if(Number.isFinite(parsed))return Math.round(parsed);}}return null;};
+const yen=(n)=>{const value=toPriceNumber(n);return value===null?'価格未取得':`${value.toLocaleString('ja-JP')}円`;};
 const safe=(value)=>{try{const u=new URL(value);return u.protocol==='https:'?u.href:''}catch{return ''}};
 const setStatus=(message)=>{status.textContent=message};
 fetch('/api/health').then(r=>r.json()).then(d=>setStatus(d.apiConfigured?'商品を検索できます。':'現在、商品検索を利用できません。')).catch(()=>setStatus('APIに接続できません。'));
