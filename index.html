@@ -118,7 +118,7 @@ button.secondary,.shelf-back{background:#eee0c0!important;color:#593e25!importan
   </section>
   <section class="panel" id="picks-section">
     <div class="panel-heading"><span class="section-icon" aria-hidden="true">🌿</span><div><small class="section-kicker">THE SHOPKEEPER'S PICKS</small><h2>人気のもの・商店おすすめ <span class="new-mark">PICK UP</span></h2></div></div>
-    <p class="help">人気商品は楽天市場の公式ランキングAPIから取得します。商店おすすめは3時間ごとにテーマが入れ替わります。売上順位や今後の流行を保証するものではありません。</p>
+    <p class="help">人気商品は楽天市場の公式ランキングAPIから取得します。商店おすすめは3時間ごとにテーマが入れ替わります。楽天の2026年冬トレンド予測に掲載された商品群と編集注目候補を紹介します。売上順位や将来の人気を保証するものではありません。<a href="https://corp.rakuten.co.jp/news/press/2026/1028_01.html" target="_blank" rel="noopener noreferrer">楽天の発表</a>。</p>
     <div class="actions" style="margin-top:12px">
       <button id="load-ranking" type="button">楽天ランキングを見る</button>
       <button id="show-editor-picks" class="secondary" type="button">商店おすすめを見る</button>
@@ -126,6 +126,7 @@ button.secondary,.shelf-back{background:#eee0c0!important;color:#593e25!importan
     </div>
     <div class="actions"><button id="shelf-back" class="shelf-back" type="button" hidden>← 前の棚に戻る</button><button id="topic-back" class="shelf-back" type="button" hidden>← この棚の品揃えに戻る</button></div>
     <p id="picks-status" class="help" role="status">まずはランキングを見るか、注目テーマを選んでください。</p>
+    <p id="daily-picks-meta" class="help" role="status">おすすめ棚の更新状況を確認中…</p>
     <div class="shelf-sign" aria-hidden="true">❧ 店主のおすすめ棚 <small>のぞくだけでも、ごゆっくり</small></div>
     <div id="editor-picks" class="picks-topics" hidden></div>
     <div id="pick-results" class="grid shelf-grid" aria-label="ピックアップされた楽天商品"></div>
@@ -242,7 +243,18 @@ try { localStorage.removeItem('rakuten_admin_token_optional_v16'); } catch {}
 // The /admin page is served only after validating a signed, HttpOnly session cookie.
 const adminHeaders = () => ({});
 const requireToken = () => true;
-const yen = (n) => typeof n === 'number' ? `${n.toLocaleString('ja-JP')}円` : '価格未取得';
+const toPriceNumber = (value) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return Math.round(value);
+  if (typeof value === 'string') {
+    const normalized = value.replace(/[¥￥,\s円]/g, '');
+    if (/^[-+]?\d+(?:\.\d+)?$/.test(normalized)) {
+      const parsed = Number(normalized);
+      if (Number.isFinite(parsed)) return Math.round(parsed);
+    }
+  }
+  return null;
+};
+const yen = (n) => { const value = toPriceNumber(n); return value === null ? '価格未取得' : `${value.toLocaleString('ja-JP')}円`; };
 const safe = (value) => { try { const u = new URL(value); return u.protocol === 'https:' ? u.href : ''; } catch { return ''; } };
 const setStatus = (message) => { status.textContent = message; };
 const DRAFT_STORAGE_KEY = 'rakuten_ai_article_drafts_v11';
@@ -402,30 +414,82 @@ const rankingButton = $('#load-ranking');
 const editorButton = $('#show-editor-picks');
 // これらは市場人気の実測値ではなく、雑学と商品紹介の相性を重視した編集上の仮説。
 const CURATED_PICK_TOPICS = [
-  { name: '3D月面ライト', keyword: '3D 月面 ライト', reason: '月の雑学と組み合わせやすく、写真で興味を引きやすい' },
-  { name: '家庭用プラネタリウム', keyword: '家庭用 プラネタリウム', reason: '星座の雑学から自然につながる体験型アイテム' },
-  { name: '真空断熱タンブラー', keyword: '真空断熱 タンブラー', reason: '保温の仕組みを説明でき、日常の使い道が明確' },
-  { name: 'ノイキャンイヤホン', keyword: 'ノイズキャンセリング イヤホン', reason: '仕組みの雑学が使え、比較の切り口を作りやすい' },
-  { name: 'コーヒードリッパー', keyword: 'コーヒー ドリッパー', reason: '抽出の雑学とセットで紹介しやすい' },
-  { name: '小型モバイルバッテリー', keyword: 'モバイルバッテリー 小型', reason: '充電規格の雑学と実用性を組み合わせられる' },
-  { name: '晴雨兼用折りたたみ傘', keyword: '晴雨兼用 折りたたみ傘', reason: 'UV加工や素材の話と関連づけられる' },
-  { name: 'ロボット掃除機', keyword: 'ロボット掃除機', reason: 'センサーの仕組みと家事の利便性を説明できる' },
-  { name: '多肉植物', keyword: '多肉植物', reason: '植物が水を蓄える仕組みから話を広げられる' },
-  { name: '万年筆', keyword: '万年筆', reason: '筆記具の歴史や構造が楽しい' },
-  { name: 'スパイスセット', keyword: 'スパイス セット', reason: '香辛料の原料と調理の話から選べる' },
-  { name: '双眼鏡', keyword: '双眼鏡', reason: '光学の仕組みとレジャーの接点がある' },
-  { name: '紅茶ポット', keyword: '紅茶 ティーポット', reason: '茶葉の違いや抽出方法を知る入口に' },
-  { name: '包丁', keyword: '包丁', reason: '刃の形や用途で選び方が変わる' },
-  { name: '腕時計', keyword: '腕時計', reason: '時を刻む仕組みとデザインの話ができる' },
-  { name: 'はちみつ', keyword: 'はちみつ', reason: 'ミツバチと花の話から始められる' }
+  { name: '軽量インナーダウン', keyword: '軽量 インナーダウン', reason: '楽天の2026年冬予測で軽量コートの需要増が紹介された', basis: '楽天冬予測' },
+  { name: 'レッグウォーマー', keyword: 'レッグウォーマー 冬', reason: '楽天の2026年冬予測で需要拡大が報告された', basis: '楽天冬予測' },
+  { name: '人感センサーヒーター', keyword: '人感センサー パネルヒーター', reason: '楽天の2026年冬予測で注目された省エネ暖房の候補', basis: '楽天冬予測' },
+  { name: 'AI調温・電気毛布', keyword: 'AI 電気毛布', reason: '楽天の2026年冬予測で注目された温度調整グッズ', basis: '楽天冬予測' },
+  { name: '全天候型撥水コート', keyword: '撥水 コート 全天候', reason: '楽天の2026年冬予測で需要拡大が報告された', basis: '楽天冬予測' },
+  { name: 'レインシューズカバー', keyword: 'レインシューズカバー 防水', reason: '楽天の2026年冬予測で需要拡大が報告された', basis: '楽天冬予測' },
+  { name: 'レインバッグカバー', keyword: 'レインバッグカバー', reason: '楽天の2026年冬予測で需要拡大が報告された', basis: '楽天冬予測' },
+  { name: '雨に強いレインスカート', keyword: 'レインスカート 防水', reason: '楽天の2026年冬予測で需要拡大が報告された', basis: '楽天冬予測' },
+  { name: '車載緊急脱出ハンマー', keyword: '車載 脱出ハンマー', reason: '楽天の2026年冬予測で需要急増が報告された防災用品', basis: '楽天冬予測' },
+  { name: 'ポータブル電源', keyword: 'ポータブル電源 防災', reason: '楽天の2026年冬予測で需要増が報告された', basis: '楽天冬予測' },
+  { name: '防災用バッテリー', keyword: '非常用 バッテリー 防災', reason: '楽天の2026年冬予測で需要増が報告された', basis: '楽天冬予測' },
+  { name: 'キャンプ用アウトドアスパイス', keyword: 'アウトドア スパイス', reason: '楽天の2026年冬予測でアウトドア料理の需要増が紹介された', basis: '楽天冬予測' },
+  { name: '冷凍おにぎり', keyword: '冷凍 おにぎり', reason: '楽天の2026年冬予測で需要増が報告された', basis: '楽天冬予測' },
+  { name: '保温スープジャー', keyword: 'スープジャー 保温', reason: '楽天の2026年冬予測で需要増が報告された', basis: '楽天冬予測' },
+  { name: '持ち運べる食品加熱グッズ', keyword: 'ポータブル レンジ 食品 加熱', reason: '楽天の2026年冬予測で紹介された屋外向け商品群', basis: '楽天冬予測' },
+  { name: 'プロテインスイーツ', keyword: 'プロテイン スイーツ', reason: '楽天の2026年冬予測で需要拡大が報告された', basis: '楽天冬予測' },
+  { name: '2027年コスメ福袋', keyword: '2027 コスメ 福袋', reason: '年末年始に向けた注目候補。販売内容は商品ページで確認', basis: '編集注目' },
+  { name: 'リカバリーウェア', keyword: 'リカバリーウェア', reason: '着心地と素材で比べたいウェアの編集候補', basis: '編集注目' },
+  { name: '裏起毛ワイドパンツ', keyword: '裏起毛 ワイドパンツ', reason: '秋冬の普段着として比較したい編集候補', basis: '編集注目' },
+  { name: '省スペース加湿器', keyword: '卓上 加湿器 省スペース', reason: '乾燥する季節に使い方で選べる編集候補', basis: '編集注目' },
+  { name: '充電式湯たんぽ', keyword: '充電式 湯たんぽ', reason: '部分的な暖房を探す人向けの編集候補', basis: '編集注目' },
+  { name: 'ルームシューズ', keyword: '暖かい ルームシューズ', reason: '室内の寒さ対策に合わせて探せる編集候補', basis: '編集注目' },
+  { name: 'ブランケット', keyword: 'ブランケット ひざ掛け', reason: '素材・洗いやすさで選びやすい編集候補', basis: '編集注目' },
+  { name: 'クリスマスギフトセット', keyword: 'クリスマス ギフト セット', reason: 'ギフトシーズン向けに探す編集候補', basis: '編集注目' },
+  { name: 'ノイズキャンセリングイヤホン', keyword: 'ノイズキャンセリング イヤホン', reason: '通勤・作業向けに性能比較しやすい編集候補', basis: '編集注目' },
+  { name: '小型GaN急速充電器', keyword: 'GaN 充電器 USB-C', reason: '旅行やデスク周りの小型化に向く編集候補', basis: '編集注目' },
+  { name: 'マグネット式充電スタンド', keyword: 'Qi2 マグネット 充電 スタンド', reason: 'スマホ周辺機器の編集候補。対応機種を要確認', basis: '編集注目' },
+  { name: '小型プロジェクター', keyword: '小型 プロジェクター', reason: 'おうちエンタメとして比較したい編集候補', basis: '編集注目' },
+  { name: 'スマートトラッカー', keyword: '紛失防止 スマートタグ', reason: '鍵や荷物を探す用途で検討したい編集候補', basis: '編集注目' },
+  { name: '折りたたみスマホスタンド', keyword: '折りたたみ スマホスタンド', reason: '外出先やデスクで使える編集候補', basis: '編集注目' },
+  { name: '旅行用圧縮ポーチ', keyword: '旅行 圧縮ポーチ', reason: '旅行・帰省の荷物を整理する編集候補', basis: '編集注目' },
+  { name: '衣類スチーマー', keyword: 'ハンディ 衣類スチーマー', reason: '冬服のお手入れに注目した編集候補', basis: '編集注目' },
+  { name: '軽量コードレス掃除機', keyword: '軽量 コードレス 掃除機', reason: '扱いやすさと充電時間で比較したい編集候補', basis: '編集注目' },
+  { name: '卓上食洗機', keyword: '工事不要 食洗機', reason: 'コンパクト家電として選択肢を比べる編集候補', basis: '編集注目' },
+  { name: '速乾ヘアドライヤー', keyword: '速乾 ドライヤー', reason: '風量と持ちやすさで比べる美容家電の編集候補', basis: '編集注目' },
+  { name: '美容スチーマー', keyword: 'フェイス スチーマー', reason: '機能と手入れのしやすさで選ぶ編集候補', basis: '編集注目' },
+  { name: '間接照明・LEDライト', keyword: 'LED 間接照明 調光', reason: '部屋の雰囲気づくり向けの編集候補', basis: '編集注目' },
+  { name: 'フィットネストラッカー', keyword: 'フィットネストラッカー', reason: '運動量の記録に役立つ機器の編集候補', basis: '編集注目' },
+  { name: 'スマホ用ジンバル', keyword: 'スマホ ジンバル', reason: '動画撮影を始める人向けの編集候補', basis: '編集注目' },
+  { name: 'ペット自動給水器', keyword: 'ペット 自動給水器', reason: '給水量やお手入れ方法で比較する編集候補', basis: '編集注目' }
 ];
 // A stable rotation per three-hour window avoids showing the same fixed eight picks all day.
+// v32: Only a completed, verified daily snapshot replaces the editorial fallback catalog.
+let activePickTopics=CURATED_PICK_TOPICS;
+const dailyPicksMetaEl=document.getElementById('daily-picks-meta');
+let dailyPickMeta=null;
+let dailyPickRetry=0;
+const dailyPickExplanation=()=>dailyPickMeta?.day
+  ? `${dailyPickMeta.current?'本日':'前回'}${dailyPickMeta.day}の楽天ランキングを基に更新。${dailyPickMeta.current?'':'本日の更新待ちまたは失敗のため前回の棚を維持。'}3時間ごとに並び順が変わります。`
+  : '初回ランキング更新待ち。現在は編集候補を表示しています。3時間ごとに並び順が変わります。';
+const loadDailyPickTopics=async()=>{
+  try{
+    const response=await fetch('/api/picks/daily',{cache:'no-store'});
+    if(!response.ok)return;
+    const data=await response.json();
+    if(!Array.isArray(data.topics)||data.topics.length!==40)dailyPicksMetaEl.textContent=dailyPickExplanation();
+    if((!Array.isArray(data.topics)||data.topics.length!==40||!data.current)&&dailyPickRetry<4){dailyPickRetry++;setTimeout(loadDailyPickTopics,15000);}
+    if(Array.isArray(data.topics)&&data.topics.length===40&&data.topics.every(t=>t&&typeof t.name==='string'&&typeof t.keyword==='string'&&typeof t.reason==='string'&&typeof t.basis==='string')){
+      if(dailyPickMeta?.day===data.day&&activePickTopics!==CURATED_PICK_TOPICS){dailyPickMeta.current=data.current;dailyPicksMetaEl.textContent=dailyPickExplanation();return;}
+      activePickTopics=data.topics;
+      dailyPickMeta={day:data.day,current:data.current};
+      dailyPicksMetaEl.textContent=dailyPickExplanation();
+      pickPage=0;shelfTrail.length=0;
+      if(!editorPicks.hidden){showEditorPickTopics();updateShelfBack();}
+    }
+  }catch{/* Offline or D1 outage: keep the most recent visible shelf. */}
+};
 const PICK_ROTATION_MS=3*60*60*1000;
+const PICKS_PER_SHELF=4;
+const PICK_SHELF_COUNT=Math.ceil(CURATED_PICK_TOPICS.length/PICKS_PER_SHELF);
 let pickPage=0;
 const rotatingPickTopics=()=>{
   const slot=Math.floor(Date.now()/PICK_ROTATION_MS);
-  const list=CURATED_PICK_TOPICS.map((topic,index)=>({topic,score:(index*7919+slot*3571)%10007})).sort((a,b)=>a.score-b.score);
-  return list.slice((pickPage%2)*4,(pickPage%2)*4+4).map(v=>v.topic);
+  const list=activePickTopics.map((topic,index)=>({topic,score:(index*7919+slot*3571)%10007})).sort((a,b)=>a.score-b.score);
+  const start=(pickPage%PICK_SHELF_COUNT)*PICKS_PER_SHELF;
+  return list.slice(start,start+PICKS_PER_SHELF).map(v=>v.topic);
 };
 const renderProductCards = (target, items, { ranked = false } = {}) => {
   target.replaceChildren();
@@ -473,11 +537,12 @@ const showEditorPickTopics = () => {
   editorPicks.hidden = false;
   $('#topic-back').hidden=true;
   editorPicks.replaceChildren();
-  picksStatus.textContent = '本日の棚は3時間ごとに自動入れ替え。違う候補は「別の棚を見る」でご覧いただけます（編集候補であり実売順位ではありません）。';
+  picksStatus.textContent = `おすすめ ${pickPage+1} / ${PICK_SHELF_COUNT}棚。各候補を選ぶと楽天の商品が表示されます。`;
+  dailyPicksMetaEl.textContent=dailyPickExplanation();
   for (const topic of rotatingPickTopics()) {
     const button = document.createElement('button');button.type='button';button.className='pick-topic';
     const name=document.createElement('strong');name.textContent=topic.name;
-    const reason=document.createElement('span');reason.textContent=topic.reason;
+    const reason=document.createElement('span');reason.textContent=`【${topic.basis}】${topic.reason}`;
     const action=document.createElement('span');action.textContent='クリックで楽天の商品候補を表示';
     button.append(name,reason,action);
     button.addEventListener('click',async()=>{
@@ -495,9 +560,11 @@ const updateShelfBack=()=>{shelfBack.hidden=shelfTrail.length===0;};
 shelfBack.addEventListener('click',()=>{if(!shelfTrail.length)return;pickPage=shelfTrail.pop();showEditorPickTopics();const topic=rotatingPickTopics()[0];if(topic)searchProducts(topic.keyword,pickResults,picksStatus);updateShelfBack();document.getElementById('picks-section').scrollIntoView({block:'start'});});
 $('#topic-back').addEventListener('click',()=>{showEditorPickTopics();$('#picks-section').scrollIntoView({block:'start'});});
 editorButton.addEventListener('click',()=>{shelfTrail.length=0;pickPage=0;showEditorPickTopics();const t=rotatingPickTopics()[0];if(t)searchProducts(t.keyword,pickResults,picksStatus);updateShelfBack();});
-$('#refresh-editor-picks').addEventListener('click',()=>{shelfTrail.push(pickPage);pickPage++;showEditorPickTopics();const t=rotatingPickTopics()[0];if(t)searchProducts(t.keyword,pickResults,picksStatus);updateShelfBack();});
+$('#refresh-editor-picks').addEventListener('click',()=>{if(pickPage+1>=PICK_SHELF_COUNT)shelfTrail.length=0;else shelfTrail.push(pickPage);pickPage=(pickPage+1)%PICK_SHELF_COUNT;showEditorPickTopics();const t=rotatingPickTopics()[0];if(t)searchProducts(t.keyword,pickResults,picksStatus);updateShelfBack();});
+loadDailyPickTopics();
+setInterval(loadDailyPickTopics,5*60*1000);
 let currentPickSlot=Math.floor(Date.now()/PICK_ROTATION_MS);
-setInterval(()=>{const slot=Math.floor(Date.now()/PICK_ROTATION_MS);if(slot!==currentPickSlot){currentPickSlot=slot;pickPage=0;showEditorPickTopics();const t=rotatingPickTopics()[0];if(t)searchProducts(t.keyword,pickResults,picksStatus);}},60000);
+setInterval(()=>{const slot=Math.floor(Date.now()/PICK_ROTATION_MS);if(slot!==currentPickSlot){currentPickSlot=slot;pickPage=0;shelfTrail.length=0;showEditorPickTopics();const t=rotatingPickTopics()[0];if(t)searchProducts(t.keyword,pickResults,picksStatus);}},60000);
 rankingButton.addEventListener('click', async () => {
   rankingButton.disabled = true;
   editorPicks.hidden = true;$('#topic-back').hidden=true;pickAttribution.hidden = true;pickResults.replaceChildren();

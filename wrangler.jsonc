@@ -19,7 +19,11 @@
   ],
   "triggers": {
     "crons": [
-      "*/30 * * * *"
+      "*/30 * * * *",
+      "0 21 * * *"
     ]
+  },
+  "vars": {
+    "RAKUTEN_SITE_ORIGIN": "https://rakuten-auto-affiliate.116kousei0428.workers.dev"
   }
 }

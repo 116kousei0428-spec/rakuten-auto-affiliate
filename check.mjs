@@ -16,6 +16,8 @@ assert.equal(config.d1_databases[0].database_id, '81926891-4dd8-4cc2-b966-e530d2
 const workerSource = readFileSync(config.main,'utf8');
 const uiSource = readFileSync(`${config.assets.directory}/index.html`,'utf8');
 assert(workerSource.includes(JSON.stringify(uiSource)), 'Worker embedded UI differs from index.html');
+const visitorSource=readFileSync(`${config.assets.directory}/visitor.html`,'utf8');
+assert(workerSource.includes(JSON.stringify(visitorSource)), 'Worker embedded storefront differs from visitor.html');
 assert(uiSource.includes('D1に保存・更新'));
 assert(uiSource.includes('雑学→Threads投稿文'));
 assert(uiSource.includes('id="load-ranking"'));

@@ -5,7 +5,7 @@ import {runAutomation} from '../automation.js';
 import worker from '../worker.js';
 const config=JSON.parse(readFileSync('wrangler.jsonc','utf8'));
 test('v22 scheduled trigger exists and runs every 30 minutes',()=>{
-  assert.deepEqual(config.triggers.crons,['*/30 * * * *']);
+  assert.deepEqual(config.triggers.crons,['*/30 * * * *','0 21 * * *']);
   assert.equal(typeof worker.scheduled,'function');
 });
 test('v22 management endpoint requires authentication even for reads',async()=>{
