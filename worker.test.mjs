@@ -16,7 +16,7 @@ test('health checks presence without revealing secrets', async () => {
   const payload = await r.json();
   assert.equal(r.status, 200);
   assert.equal(payload.apiConfigured, true);
-  assert.equal(payload.release, 'v32');
+  assert.equal(payload.release, 'v33');
   assert.ok(!JSON.stringify(payload).includes('app-private'));
   assert.ok(!JSON.stringify(payload).includes('access-private'));
 });
@@ -26,7 +26,7 @@ test('missing keys returns 503', async () => {
 test('root renders public product browsing without the private editor',async()=>{
  const r=await worker.fetch(new Request('https://site.test/'),env);
  assert.equal(r.status,200);
- assert.equal(r.headers.get('X-Rakuten-UI-Version'),'v32');
+ assert.equal(r.headers.get('X-Rakuten-UI-Version'),'v33');
  assert.equal(r.headers.get('Cache-Control'),'no-store');
  const html=await r.text();
  assert.match(html,/id="search-form"/);
@@ -36,7 +36,7 @@ test('root renders public product browsing without the private editor',async()=>
 test('index.html routes to same public view',async()=>{
  const r=await worker.fetch(new Request('https://site.test/index.html'),env);
  assert.equal(r.status,200);
- assert.equal(r.headers.get('X-Rakuten-UI-Version'),'v32');
+ assert.equal(r.headers.get('X-Rakuten-UI-Version'),'v33');
  assert.match(await r.text(),/id="admin-entry"/);
 });
 test('non-home static requests go to assets', async () => {

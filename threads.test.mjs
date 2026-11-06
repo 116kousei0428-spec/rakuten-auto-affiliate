@@ -177,15 +177,22 @@ test('moon light selects moon-specific facts before generic lighting without PR 
  assert.notEqual((await updated.json()).post.body,body);
 });
 
-test('category uses product title only, never generic article body; no false trivia',async()=>{
+test('unknown products use title-grounded shopping observations, not unrelated article facts',async()=>{
  const env=e();
  const title='無関係な装飾品A｜特徴と購入前のチェックポイント';
  const md='これは一般的な記事。照明についても触れているが商品のカテゴリは違います。';
  assert.equal((await req(env,'/api/drafts','POST',{id,title,markdown:md})).status,201);
  assert.equal((await req(env,`/api/drafts/${id}/publish`,'POST')).status,200);
  const r=await req(env,'/api/social/threads','POST',{articleId:id});
- assert.equal(r.status,422);
- assert.equal((await r.json()).errorCode,'NO_VERIFIED_TRIVIA');
+ assert.equal(r.status,201);
+ const body=(await r.json()).post.body;
+ assert.match(body,/装飾品A/);
+ assert.match(body,/買い物の小ネタ/);
+ assert.doesNotMatch(body,/ルーメン|ルクス|色温度/);
+ assert([...body].length<=500);
+ const regenerated=await req(env,`/api/social/threads/${id}/regenerate`,'POST');
+ assert.equal(regenerated.status,200);
+ assert.notEqual((await regenerated.json()).post.body,body);
 });
 
 

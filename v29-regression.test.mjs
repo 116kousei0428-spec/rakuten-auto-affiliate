@@ -21,10 +21,10 @@ test('hero: webp exists, in storefront, and is never cropped by CSS',async()=>{
 
 test('version: health and public/private response metadata identify v31',async()=>{
  const health=await (await worker.fetch(new Request('https://site.test/api/health'),env)).json();
- assert.equal(health.release,'v32');
+ assert.equal(health.release,'v33');
  const storefront=await worker.fetch(new Request('https://site.test/'),env);
- assert.equal(storefront.headers.get('X-Rakuten-UI-Version'),'v32');
- assert.match(source,/'X-Rakuten-UI-Version':'v32'/);
+ assert.equal(storefront.headers.get('X-Rakuten-UI-Version'),'v33');
+ assert.match(source,/'X-Rakuten-UI-Version':'v33'/);
 });
 
 test('price cache: bypass old result namespaces while retaining rate-limit cooldown',()=>{
