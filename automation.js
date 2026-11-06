@@ -1,3 +1,4 @@
+import { shoppingTrivia } from './trivia-fallback.js';
 // Yodan Shoten v22: server-side opt-in Threads automation.
 // The existing v21 generation and posting endpoints remain the source of truth.
 const SCHEMA = `CREATE TABLE IF NOT EXISTS yodan_auto_settings (id INTEGER PRIMARY KEY CHECK(id=1),enabled INTEGER NOT NULL DEFAULT 0,daily_target INTEGER NOT NULL DEFAULT 20,updated_at TEXT NOT NULL)`;
@@ -43,12 +44,11 @@ export async function automationApi(request,env,execute){
 }
 const productKey=(p)=>String(p.code||p.url||'').slice(0,400);
 const validProduct=p=>p&&typeof p.name==='string'&&p.name.length>4&&p.name.length<160&&typeof p.url==='string'&&/^https:\/\/(?:[^/]+\.)?rakuten\.co\.jp\//.test(p.url)&&Number.isFinite(p.price)&&p.price>0;
-const triviaCompatible=(name)=>/月面|月球|ムーン|プラネタリウム|星空|日本酒|地酒|イヤホン|ヘッドホン|コーヒー|珈琲|紅茶|緑茶|茶|モバイルバッテリー|USB|タンブラー|水筒|シューズ|スニーカー|ライト|照明|化粧水|洗顔|シャンプー|掃除機|チョコレート|はちみつ|腕時計|日傘|傘|玄米|白米|無洗米|タオル|包丁|書籍|文庫|絵本|植物|サボテン|万年筆|鉛筆|ボールペン|石鹸|石けん|スパイス|胡椒|シナモン|カメラ|双眼鏡/.test(name);
 const selectScore=(p)=>{
   const price=p.price;
   const priceScore=price>=1000&&price<=15000?20:price<=30000?12:5;
   const detailScore=Math.min(20,Math.floor((p.caption||'').length/35));
-  return priceScore+detailScore+((p.rank&&p.rank<=10)?30:(p.rank?15:0))+(triviaCompatible(p.name)?40:0);
+  return priceScore+detailScore+((p.rank&&p.rank<=10)?30:(p.rank?15:0));
 };
 async function internalJson(execute, origin, path, init={}) {
   const req=new Request(new URL(path,origin),{...init,headers:{Origin:origin,...(init.headers||{})}});
@@ -90,8 +90,7 @@ export async function runAutomation(env,execute,{manual=false}={}){
     const recent=await env.DB.prepare("SELECT product_key FROM yodan_auto_products WHERE selected_at>=?").bind(new Date(Date.now()-30*86400000).toISOString()).all();
     const blocked=new Set((recent.results||[]).map(x=>x.product_key));
     // Prices and ranking are observable signals; external trend popularity is NOT verified.
-    const chosenCategories=new Set();
-    const available=candidates.filter(p=>!blocked.has(productKey(p)) && triviaCompatible(p.name)).sort((a,b)=>selectScore(b)-selectScore(a));
+    const available=candidates.filter(p=>!blocked.has(productKey(p))).sort((a,b)=>selectScore(b)-selectScore(a));
     if(!available.length)throw new Error('NO_ELIGIBLE_PRODUCTS');
     const p=available[0];key=productKey(p);
     articleId=crypto.randomUUID();
@@ -110,9 +109,8 @@ export async function runAutomation(env,execute,{manual=false}={}){
     await env.DB.prepare('INSERT INTO article_publications (id,title,markdown,published_at,updated_at) VALUES (?,?,?,?,?)').bind(articleId,title,markdown,ts,ts).run();
     await mark('article_ready');
     const pageUrl=`${origin}/articles/${articleId}`;
-    // Reuse fact-locked trivia from the generated article; never generate a fresh unverified claim.
-    const lockedFact=markdown.match(/## 今日の余談\s+店主から、ひとつ余談を。([^\n]+)/)?.[1]?.trim();
-    if(!lockedFact || lockedFact.length<18)throw new Error('NO_VERIFIED_TRIVIA');
+    // Favor the server-inserted fact or grounded shopping note. Legacy article fallback is factuality-safe.
+    const lockedFact=markdown.match(/## 今日の余談\s+店主から、ひとつ余談を。([^\n]+)/)?.[1]?.trim() || shoppingTrivia(p.name);
     const lines=['さて、本日の余談です。','店主から、ちょっと面白い話を。','今日、店先でお話ししたいのはこれ。','ひとつ知ると、景色が変わるものですね。'];
     const seed=[...articleId].reduce((v,c)=>v+c.charCodeAt(0),0);
     const text=`【PR】\n\n${lines[seed%lines.length]}\n\n${lockedFact}\n\nそんな話につながる品を一つ。\n${pageUrl}`;
