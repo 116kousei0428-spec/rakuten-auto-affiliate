@@ -1,4 +1,5 @@
 import { shoppingTrivia } from './trivia-fallback.js';
+import { composeThreadsStory } from './threads-copy.js';
 // Yodan Shoten v22: server-side opt-in Threads automation.
 // The existing v21 generation and posting endpoints remain the source of truth.
 const SCHEMA = `CREATE TABLE IF NOT EXISTS yodan_auto_settings (id INTEGER PRIMARY KEY CHECK(id=1),enabled INTEGER NOT NULL DEFAULT 0,daily_target INTEGER NOT NULL DEFAULT 20,updated_at TEXT NOT NULL)`;
@@ -111,9 +112,15 @@ export async function runAutomation(env,execute,{manual=false}={}){
     const pageUrl=`${origin}/articles/${articleId}`;
     // Favor the server-inserted fact or grounded shopping note. Legacy article fallback is factuality-safe.
     const lockedFact=markdown.match(/## 今日の余談\s+店主から、ひとつ余談を。([^\n]+)/)?.[1]?.trim() || shoppingTrivia(p.name);
-    const lines=['さて、本日の余談です。','店主から、ちょっと面白い話を。','今日、店先でお話ししたいのはこれ。','ひとつ知ると、景色が変わるものですね。'];
     const seed=[...articleId].reduce((v,c)=>v+c.charCodeAt(0),0);
-    const text=`【PR】\n\n${lines[seed%lines.length]}\n\n${lockedFact}\n\nそんな話につながる品を一つ。\n${pageUrl}`;
+    const text=composeThreadsStory({
+      trivia:lockedFact,
+      intro:'今日の棚の品については、記事にまとめました。',
+      articleUrl:pageUrl,
+      isPromotion:true,
+      variant:seed
+    });
+    if(!text)throw new Error('POST_TOO_LONG');
     if([...text].length>500)throw new Error('POST_TOO_LONG');
     await env.DB.prepare('CREATE TABLE IF NOT EXISTS threads_posts (article_id TEXT PRIMARY KEY,body TEXT NOT NULL,status TEXT NOT NULL DEFAULT \'draft\',container_id TEXT,external_id TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,published_at TEXT)').run();
     await env.DB.prepare("INSERT INTO threads_posts (article_id,body,status,created_at,updated_at) VALUES (?,?,'draft',?,?)").bind(articleId,text,ts,ts).run();

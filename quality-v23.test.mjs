@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 const worker=readFileSync('worker.js','utf8');
 const ui=readFileSync('public/index.html','utf8');
 const automation=readFileSync('automation.js','utf8');
+const composer=readFileSync('threads-copy.js','utf8');
 test('reviewed category facts remain locked and unreviewed items get safe notes',()=>{
   assert.match(worker,/const verifiedFact=factCategory/);
   assert.match(worker,/const editorialNote=verifiedFact \|\| shoppingTrivia/);
@@ -13,8 +14,9 @@ test('reviewed category facts remain locked and unreviewed items get safe notes'
 });
 test('shopkeeper narrative and variable Threads hooks are in place',()=>{
   assert.match(worker,/店主から、ひとつ余談を/);
-  assert.match(worker,/const openers=\[/);
-  assert.match(worker,/const endings=\[/);
+  assert.match(worker,/composeThreadsStory\(/);
+  assert.match(composer,/const GREETINGS = \[/);
+  assert.match(composer,/const GOODBYES = \[/);
   assert.match(worker,/const category=categoryFor\(title\)/);
 });
 test('editor picks rotate every 3 hours and can be refreshed manually',()=>{
@@ -27,5 +29,6 @@ test('scheduled posts do not filter unfamiliar categories and retain safe editor
   assert.match(automation,/candidates\.filter\(p=>!blocked/);
   assert.match(automation,/lockedFact/);
   assert.match(automation,/shoppingTrivia\(p\.name\)/);
-  assert.match(automation,/【PR】/);
+  assert.match(automation,/composeThreadsStory\(/);
+  assert.match(automation,/isPromotion:true/);
 });
