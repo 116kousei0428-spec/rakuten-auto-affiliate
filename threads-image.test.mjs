@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import worker from '../worker.js';
 import {readFileSync} from 'node:fs';
 import { FakeD1 } from './fake-d1.mjs';
+import { mockThreadAI } from './mock-thread-ai.mjs';
 const id='223e4567-e89b-42d3-a456-426614174001';
 const key='test-admin-key';
-const env=()=>({DB:new FakeD1(),AI_ADMIN_TOKEN:key,THREADS_ACCESS_TOKEN:'meta-example-test',ASSETS:{fetch:()=>new Response('asset')}});
+const env=()=>({DB:new FakeD1(),AI_ADMIN_TOKEN:key,AI:mockThreadAI(),THREADS_ACCESS_TOKEN:'meta-example-test',ASSETS:{fetch:()=>new Response('asset')}});
 const req=(e,path,method='GET',body)=>worker.fetch(new Request('https://example.test'+path,{method,headers:{Origin:'https://example.test','X-Admin-Token':key,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined}),e);
 const setup=async(e,media={})=>{
   const doc=await req(e,'/api/drafts','POST',{id,title:'月面ライト',markdown:'※この記事にはアフィリエイト広告が含まれます。\n\n月面ライトの商品解説です。',...media});

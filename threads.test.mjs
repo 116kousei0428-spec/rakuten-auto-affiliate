@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import worker from '../worker.js';
 import {readFileSync} from 'node:fs';
 import { FakeD1 } from './fake-d1.mjs';
+import { mockThreadAI } from './mock-thread-ai.mjs';
 const id='123e4567-e89b-42d3-a456-426614174000';
 const admin='threads-test-very-long-secret';
-const e=(extra={})=>({DB:new FakeD1(),AI_ADMIN_TOKEN:admin,ASSETS:{fetch:()=>new Response('asset')},...extra});
+const e=(extra={})=>({DB:new FakeD1(),AI_ADMIN_TOKEN:admin,AI:mockThreadAI(),ASSETS:{fetch:()=>new Response('asset')},...extra});
 const req=(env,path,method='GET',body,token=admin,origin='https://example.test')=>worker.fetch(new Request(`https://example.test${path}`,{method,headers:{'X-Admin-Token':token,Origin:origin,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined}),env);
 const saveAndPublish=async env=>{
  await req(env,'/api/drafts');
@@ -32,8 +33,8 @@ test('draft layout: plain prose without headings or PR by default, article URL, 
  assert(!body.includes('【ちょっとした雑学】'));
  assert(!body.includes('【商品紹介】'));
  assert(!body.includes('──────'));
- assert(body.indexOf('ノイズキャンセリング') < body.indexOf('イヤホンの特徴'));
- assert(body.includes('イヤホンの特徴'));
+ assert.match(body,/ノイズキャンセリング|Bluetooth/);
+ assert.match(body,/イヤホン/);
  assert(!body.includes('ワイヤレスイヤホン入門'),'do not quote SEO title verbatim');
  assert(body.includes(`/articles/${id}`));
  assert(!body.includes('※PR・アフィリエイト広告を含みます'));
@@ -41,7 +42,7 @@ test('draft layout: plain prose without headings or PR by default, article URL, 
  const duplicate=await req(env,'/api/social/threads','POST',{articleId:id});
  assert.equal(duplicate.status,200);
  assert.equal((await duplicate.json()).alreadyExists,true);
- const updateText=body.replace('イヤホンの特徴', 'イヤホンの使い方');
+ const updateText=body.replace('イヤホン', '耳元の道具');
  assert.equal((await req(env,`/api/social/threads/${id}`,'PUT',{body:updateText})).status,200);
  const list=await req(env,'/api/social/threads');
  assert.equal(list.status,200);
@@ -112,7 +113,7 @@ test('sake post uses sake-specific verified trivia, concise intro and D1 regener
  assert(!created.body.includes('特徴と購入前のチェックポ'));
  assert(!created.body.includes('日本酒 飲み比べセット 普通酒 特割 全国 地酒'));
  assert([...created.body].length<=500);
- const edited=created.body.replace('日本酒の飲み比べセットを紹介。','個人的な紹介文。');
+ const edited=created.body.replace('余談商店', '街の店主');
  assert.equal((await req(env,`/api/social/threads/${id}`,'PUT',{body:edited})).status,200);
  const regenerated=await req(env,`/api/social/threads/${id}/regenerate`,'POST');
  assert.equal(regenerated.status,200);
@@ -169,7 +170,7 @@ test('moon light selects moon-specific facts before generic lighting without PR 
  assert.doesNotMatch(body,/^【PR】/);
  assert.match(body,/月は地球|月の裏側/);
  assert.doesNotMatch(body,/色温度|ルーメン/);
- assert.match(body,/月面をモチーフ/);
+ assert.match(body,/月面ライト/);
  assert(!body.includes('※PR・アフィリエイト広告を含みます'));
  assert([...body].length<=500);
  const updated=await req(env,`/api/social/threads/${id}/regenerate`,'POST');
@@ -177,7 +178,7 @@ test('moon light selects moon-specific facts before generic lighting without PR 
  assert.notEqual((await updated.json()).post.body,body);
 });
 
-test('unknown products use title-grounded shopping observations, not unrelated article facts',async()=>{
+test('unknown products use dynamically composed, title-grounded prose without unrelated facts',async()=>{
  const env=e();
  const title='無関係な装飾品A｜特徴と購入前のチェックポイント';
  const md='これは一般的な記事。照明についても触れているが商品のカテゴリは違います。';
@@ -187,7 +188,7 @@ test('unknown products use title-grounded shopping observations, not unrelated a
  assert.equal(r.status,201);
  const body=(await r.json()).post.body;
  assert.match(body,/装飾品A/);
- assert.match(body,/買い物の小ネタ/);
+ assert.doesNotMatch(body,/買い物の小ネタ|設置場所や持ち運ぶ/);
  assert.doesNotMatch(body,/ルーメン|ルクス|色温度/);
  assert([...body].length<=500);
  const regenerated=await req(env,`/api/social/threads/${id}/regenerate`,'POST');

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { shoppingTrivia, productNameFromTitle } from '../trivia-fallback.js';
 import worker from '../worker.js';
 import { FakeD1 } from './fake-d1.mjs';
+import { mockThreadAI } from './mock-thread-ai.mjs';
 const admin='test-only-long-secret-token';
 const uuid='c0b7fb08-d07e-4fdc-bc11-333333333333';
 const req=(env,path,method='GET',body)=>worker.fetch(new Request(`https://example.test${path}`,{method,headers:{'X-Admin-Token':admin,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined}),env);
@@ -28,7 +29,7 @@ test('variant selection is stable, and repeated generations can change the note'
 });
 test('manual Threads creation and regeneration work for multiple previously unsupported genres',async()=>{
   for(const title of categories){
-    const env={DB:new FakeD1(),AI_ADMIN_TOKEN:admin};
+    const env={DB:new FakeD1(),AI_ADMIN_TOKEN:admin,AI:mockThreadAI()};
     await req(env,'/api/drafts');
     const saved=await req(env,'/api/drafts','POST',{id:uuid,title:`${title}｜特徴と購入前のチェックポイント`,markdown:'※この記事にはアフィリエイト広告が含まれます。\n\n商品情報は販売者の説明です。'});
     assert.equal(saved.status,201,title);

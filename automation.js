@@ -1,5 +1,4 @@
-import { shoppingTrivia } from './trivia-fallback.js';
-import { composeThreadsStory } from './threads-copy.js';
+import { generateNarrative } from './threads-story-ai.js';
 // Yodan Shoten v22: server-side opt-in Threads automation.
 // The existing v21 generation and posting endpoints remain the source of truth.
 const SCHEMA = `CREATE TABLE IF NOT EXISTS yodan_auto_settings (id INTEGER PRIMARY KEY CHECK(id=1),enabled INTEGER NOT NULL DEFAULT 0,daily_target INTEGER NOT NULL DEFAULT 20,updated_at TEXT NOT NULL)`;
@@ -110,15 +109,11 @@ export async function runAutomation(env,execute,{manual=false}={}){
     await env.DB.prepare('INSERT INTO article_publications (id,title,markdown,published_at,updated_at) VALUES (?,?,?,?,?)').bind(articleId,title,markdown,ts,ts).run();
     await mark('article_ready');
     const pageUrl=`${origin}/articles/${articleId}`;
-    // Favor the server-inserted fact or grounded shopping note. Legacy article fallback is factuality-safe.
-    const lockedFact=markdown.match(/## 今日の余談\s+店主から、ひとつ余談を。([^\n]+)/)?.[1]?.trim() || shoppingTrivia(p.name);
-    const seed=[...articleId].reduce((v,c)=>v+c.charCodeAt(0),0);
-    const text=composeThreadsStory({
-      trivia:lockedFact,
-      intro:'今日の棚の品については、記事にまとめました。',
-      articleUrl:pageUrl,
-      isPromotion:true,
-      variant:seed
+    // Automated Threads posts use the same product-specific AI narrative as manual posts.
+    // No generic shopping-tip fallback: if generation fails, do NOT publish filler.
+    const text=await generateNarrative({
+      env,title:p.name,markdown,articleUrl:pageUrl,isPromotion:true,
+      verifiedFact:typeof generated.verifiedStoryFact==='string'?generated.verifiedStoryFact:'',previousBody:''
     });
     if(!text)throw new Error('POST_TOO_LONG');
     if([...text].length>500)throw new Error('POST_TOO_LONG');

@@ -14,7 +14,7 @@ test('reviewed category facts remain locked and unreviewed items get safe notes'
 });
 test('shopkeeper narrative and variable Threads hooks are in place',()=>{
   assert.match(worker,/店主から、ひとつ余談を/);
-  assert.match(worker,/composeThreadsStory\(/);
+  assert.match(worker,/generateNarrative\(/);
   assert.match(composer,/const GREETINGS = \[/);
   assert.match(composer,/const GOODBYES = \[/);
   assert.match(worker,/const category=categoryFor\(title\)/);
@@ -27,8 +27,7 @@ test('editor picks rotate every 3 hours and can be refreshed manually',()=>{
 test('scheduled posts do not filter unfamiliar categories and retain safe editor notes',()=>{
   assert.doesNotMatch(automation,/triviaCompatible|NO_VERIFIED_TRIVIA/);
   assert.match(automation,/candidates\.filter\(p=>!blocked/);
-  assert.match(automation,/lockedFact/);
-  assert.match(automation,/shoppingTrivia\(p\.name\)/);
-  assert.match(automation,/composeThreadsStory\(/);
+  assert.match(automation,/generateNarrative\(/);
+  assert.doesNotMatch(automation,/shoppingTrivia\(p\.name\)/);
   assert.match(automation,/isPromotion:true/);
 });
