@@ -62,7 +62,7 @@ test('homepage still serves public shelves and old endpoints behave independentl
   assert.match(html,/商店おすすめを見る/);
   assert.match(html,/別の棚を見る/);
   assert.doesNotMatch(html,/name: '(腕時計|はちみつ)'/);
-  assert.equal(result.headers.get('X-Rakuten-UI-Version'),'v35');
+  assert.equal(result.headers.get('X-Rakuten-UI-Version'),'v36');
   const health=await worker.fetch(new Request('https://site.test/api/health'),{});
-  assert.equal((await health.json()).release,'v35');
+  assert.equal((await health.json()).release,'v36');
 });
