@@ -12,6 +12,8 @@ const SEARCH_API = 'https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search
 const MODEL = '@cf/google/gemma-4-26b-a4b-it';
 const TARGET = 48; // Four shelves of four columns × three rows
 const GROUPS_PER_DAY = 12; // Twelve distinct genres; four items per genre across four shelves
+const MAX_RANKING_GENRE_ATTEMPTS = 18; // Allow replacements for invalid/unranked genres without exhausting request budgets
+const UNRANKED_ROOT_GENRES = new Set(['100000', '101114', '111427']); // Categories reported without usable top-level item rankings
 const LOCK_MS = 20 * 60 * 1000;
 const RETRY_MS = 5 * 60 * 1000; // Freshly deployed shelves may retry safely after an initial failure
 const MAX_TREND_QUERIES = 2;
@@ -40,7 +42,7 @@ function rankScore(p) {
 export function parseRootGenres(payload) {
   const children = Array.isArray(payload?.children) ? payload.children : [];
   return children.map(x => x?.genre ?? x?.child ?? x).map(x => ({id:String(x?.genreId ?? ''),name:norm(x?.nameJa || x?.jaName)}))
-    .filter(x => /^\d{2,9}$/.test(x.id) && x.name && !BLOCK_GENRE.test(x.name));
+    .filter(x => /^\d{2,9}$/.test(x.id) && x.name && !BLOCK_GENRE.test(x.name) && !UNRANKED_ROOT_GENRES.has(x.id));
 }
 function productFromEntry(source, group, isTrend, index, term) {
   const p = source?.Item ?? source?.item ?? source;
@@ -227,20 +229,35 @@ export async function refreshRecommended(env,{date=currentJstDay(),origin=env.RA
     // Vary which first-level categories are represented from one day to the next.
     const daySeed=Number(date.replaceAll('-',''));
     const offset = daySeed % allGenres.length;
-    const genres = Array.from({length:Math.min(GROUPS_PER_DAY,allGenres.length)},(_,i)=>
-      allGenres[(Math.floor(i*allGenres.length/Math.min(GROUPS_PER_DAY,allGenres.length))+offset)%allGenres.length]);
+    // Rotate through different categories and keep spare categories for failed/unranked ones.
+    // In particular, a valid genre in Genre Search may have no usable Ranking API feed.
+    const candidateCount=Math.min(allGenres.length,MAX_RANKING_GENRE_ATTEMPTS);
+    const genres=Array.from({length:candidateCount},(_,i)=>
+      allGenres[(Math.floor(i*allGenres.length/candidateCount)+offset)%allGenres.length]);
     const groups=[];
+    let firstGenreFailure=null;
     for(const genre of genres){
+      if(groups.length>=GROUPS_PER_DAY)break;
       const params=new URLSearchParams({format:'json',formatVersion:'2',applicationId:app,genreId:genre.id});
       if(affiliate)params.set('affiliateId',affiliate);
       let body;
       try{body=await pacedRequest(RANKING_API,params,headers,'GENRE_RANKING',genre.id);}
-      catch(e){if(String(e?.message||'').startsWith('RAKUTEN_'))throw e;continue;}
+      catch(e){
+        const code=String(e?.message||'');
+        const hint=e?.shelfDiagnostic?.parameterHint;
+        if((code.startsWith('RAKUTEN_GENRE_RANKING_HTTP_400') && (hint===null || hint==='GENRE_ID')) || code==='RAKUTEN_API_HTTP_404'){
+          if(!firstGenreFailure)firstGenreFailure=e;
+          // This category is not rankable. Other categories can still produce a real shelf.
+          continue;
+        }
+        throw e; // invalid credentials, forbidden access, rate limiting, or other unexpected provider errors
+      }
       if(!body)continue;
       const entries=Array.isArray(body.Items)?body.Items:Array.isArray(body.items)?body.items:[];
       const items=canonical(entries.map((item,i)=>productFromEntry(item,genre,false,i,null)).filter(x=>x&&x.rank)).sort((a,b)=>b.score-a.score).slice(0,9);
       if(items.length)groups.push({...genre,items});
     }
+    if(groups.length<6 && firstGenreFailure)throw firstGenreFailure; // retain the original provider diagnostics
     // Reuse the v37 opt-in trend snapshot; never hit public social APIs or guess a trend.
     let trends=null;
     try{

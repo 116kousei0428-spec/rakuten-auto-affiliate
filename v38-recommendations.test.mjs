@@ -56,7 +56,8 @@ test('product selection uses unique verified products and diverse category shelv
 });
 
 test('root genres are from live response and restricted/duplicate fallback categories are excluded',()=>{
-  const xs=parseRootGenres({children:[{genreId:'100',nameJa:'家電'},{genreId:'101',nameJa:'ビール'},{genreId:'200',nameJa:'本・雑誌'}]});
+  const xs=parseRootGenres({children:[{genreId:'100',nameJa:'家電'},{genreId:'101',nameJa:'ビール'},{genreId:'200',nameJa:'本・雑誌'},
+    {genreId:'100000',nameJa:'百貨店・総合通販・ギフト'},{genreId:'101114',nameJa:'車・バイク'},{genreId:'111427',nameJa:'住宅・不動産'}]});
   assert.deepEqual(xs.map(x=>x.name),['家電','本・雑誌']);
 });
 
@@ -166,4 +167,46 @@ test('HTTP 400 diagnosis identifies endpoint and safe parameter without revealin
     assert.equal(visible.providerErrorCode,'wrong_parameter');
     assert.equal(visible.items.length,0);
   }
+});
+
+test('genre-specific 400 wrong_parameter / 404 not_found do not block other 12 real categories',async()=>{
+  const db=fakeDb(),env=credentials(db);
+  const requested=[];
+  const fetcher=async (url,opts)=>{
+    if(url.includes('IchibaGenre'))return Response.json(root);
+    if(url.includes('IchibaItem/Ranking')){
+      const id=new URL(url).searchParams.get('genreId');
+      requested.push(id);
+      // Simulate invalid/unranked categories appearing among the early ranking requests.
+      if(requested.length===1 || requested.length===3)
+        return Response.json({error:'wrong_parameter',error_description:'parameter is not valid'},{status:400});
+      if(requested.length===2)
+        return Response.json({error:'not_found',error_description:'This genre data does not exist'},{status:404});
+    }
+    return fakeFetch(url,opts);
+  };
+  const result=await refreshRecommended(env,{date:'2026-11-12',fetcher,pause:async()=>{}});
+  assert.equal(result.ok,true,'other categories should complete the shelf despite individual category failures');
+  assert.equal(result.count,48);
+  assert.equal(result.genres,12);
+  assert.equal(requested.includes('100000'),false,'known unranked parent genre must not be requested');
+  assert.equal(requested.length,15,'12 successful genres plus 3 known-unavailable examples');
+  const latest=await getLatestRecommended(env,{date:'2026-11-12'});
+  assert.equal(latest.current,true);assert.equal(latest.items.length,48);
+});
+
+test('global wrong_parameter (applicationId) is not hidden by per-genre error skipping',async()=>{
+  const db=fakeDb(),env=credentials(db), calls=[];
+  const fetcher=async (url,opts)=>{
+    if(url.includes('IchibaItem/Ranking')){
+      calls.push(url);
+      return Response.json({error:'wrong_parameter',error_description:'specify valid applicationId'},{status:400});
+    }
+    return fakeFetch(url,opts);
+  };
+  const result=await refreshRecommended(env,{date:'2026-11-12',fetcher,pause:async()=>{}});
+  assert.equal(result.ok,false);
+  assert.equal(calls.length,1,'credential issues should abort immediately');
+  const diagnosis=JSON.parse(db.records.get('2026-11-12').products_json);
+  assert.equal(diagnosis.parameterHint,'APP_ID');
 });
