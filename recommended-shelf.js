@@ -127,11 +127,18 @@ export async function getLatestRecommended(env,{date=currentJstDay()}={}) {
   const row=await env.DB.prepare("SELECT day,products_json,updated_at FROM yodan_recommended_shelves WHERE day<=? AND status='published' ORDER BY day DESC LIMIT 1").bind(date).first();
   if(!row){
     const attempt=await env.DB.prepare('SELECT status,updated_at,products_json FROM yodan_recommended_shelves WHERE day=?').bind(date).first();
-    let failureCode=null;
+    let failureCode=null, failureStage=null, providerErrorCode=null, parameterHint=null, affectedGenreId=null;
     if(attempt?.status==='failed'){
-      try{failureCode=JSON.parse(attempt.products_json)?.errorCode||'RECOMMENDATION_FAILED';}catch{failureCode='RECOMMENDATION_FAILED';}
+      try{
+        const d=JSON.parse(attempt.products_json);
+        failureCode=d?.errorCode||'RECOMMENDATION_FAILED';
+        failureStage=d?.stage||null;
+        providerErrorCode=d?.providerErrorCode||null;
+        parameterHint=d?.parameterHint||null;
+        affectedGenreId=d?.affectedGenreId||null;
+      }catch{failureCode='RECOMMENDATION_FAILED';}
     }
-    return {...empty,pending:attempt?.status!=='failed',status:attempt?.status||'not_started',failureCode,updatedAt:attempt?.updated_at||null};
+    return {...empty,pending:attempt?.status!=='failed',status:attempt?.status||'not_started',failureCode,failureStage,providerErrorCode,parameterHint,affectedGenreId,updatedAt:attempt?.updated_at||null};
   }
   try{
     const items=JSON.parse(row.products_json);
@@ -139,10 +146,30 @@ export async function getLatestRecommended(env,{date=currentJstDay()}={}) {
     return {items,day:row.day,updatedAt:row.updated_at,current:row.day===date,pending:row.day!==date,source:empty.source};
   }catch{return empty;}
 }
-async function requestJson(fetcher,endpoint,params,headers) {
+// v39.1: capture only a whitelisted diagnosis for HTTP 400. Do not expose a URL,
+// credentials, headers, raw provider messages, or arbitrary response-body text.
+function rakuten400Diagnostic(body,stage,genreId){
+  const errorCode=typeof body?.error==='string' && /^[a-z][a-z0-9_]{1,40}$/.test(body.error) ? body.error : null;
+  const desc=typeof body?.error_description==='string'?body.error_description:'';
+  const hints=[['applicationId','APP_ID'],['accessKey','ACCESS_KEY'],['affiliateId','AFFILIATE_ID'],
+    ['genreId','GENRE_ID'],['keyword','KEYWORD'],['formatVersion','FORMAT_VERSION'],
+    ['format','FORMAT'],['hits','HITS'],['page','PAGE']];
+  const hint=hints.find(([field])=>new RegExp(`\\b${field}\\b`,'i').test(desc))?.[1]||null;
+  return {stage,providerErrorCode:errorCode,parameterHint:hint,
+    affectedGenreId:/^\d{2,9}$/.test(String(genreId||''))?String(genreId):null};
+}
+async function requestJson(fetcher,endpoint,params,headers,stage,genreId=null) {
   const res=await fetcher(`${endpoint}?${params}`,{method:'GET',headers,signal:AbortSignal.timeout(12000)});
   if(res.status===429)throw Error('RAKUTEN_RATE_LIMIT_429');
   if(res.status===403)throw Error('RAKUTEN_FORBIDDEN_403');
+  if(res.status===400){
+    let upstream=null;
+    try{upstream=await res.json();}catch{/* Unparseable upstream response: do not echo raw content. */}
+    const diagnostic=rakuten400Diagnostic(upstream,stage,genreId);
+    const e=new Error(`RAKUTEN_${stage}_HTTP_400${diagnostic.parameterHint?'_'+diagnostic.parameterHint:''}`);
+    e.shelfDiagnostic=diagnostic;
+    throw e;
+  }
   if(!res.ok)throw Error(`RAKUTEN_API_HTTP_${res.status}`);
   const body=await res.json();
   return body?.error || body?.errors ? null : body;
@@ -182,18 +209,18 @@ export async function refreshRecommended(env,{date=currentJstDay(),origin=env.RA
     // A single refresh can issue several different Rakuten API requests.
     // Never launch a parallel burst: application IDs are limited to one request/second.
     let lastRequestAt=null;
-    const pacedRequest=async(endpoint,params,headers)=>{
+    const pacedRequest=async(endpoint,params,headers,stage,genreId=null)=>{
       const started=Date.now();
       if(lastRequestAt!==null){
         const delay=Math.max(0,MIN_REQUEST_GAP_MS-(started-lastRequestAt));
         if(delay)await pause(delay);
       }
       lastRequestAt=Date.now();
-      return requestJson(fetcher,endpoint,params,headers);
+      return requestJson(fetcher,endpoint,params,headers,stage,genreId);
     };
     const headers={Accept:'application/json',accessKey,Origin:allowedOrigin,Referer:`${allowedOrigin}/`};
     const params=new URLSearchParams({format:'json',formatVersion:'2',applicationId:app,genreId:'0'});
-    const root=await pacedRequest(ROOT_API,params,headers);
+    const root=await pacedRequest(ROOT_API,params,headers,'GENRE_ROOT');
     if(!root)throw Error('GENRE_ROOT_UNAVAILABLE');
     const allGenres=parseRootGenres(root);
     if(allGenres.length<12)throw Error('NOT_ENOUGH_GENRES');
@@ -207,7 +234,7 @@ export async function refreshRecommended(env,{date=currentJstDay(),origin=env.RA
       const params=new URLSearchParams({format:'json',formatVersion:'2',applicationId:app,genreId:genre.id});
       if(affiliate)params.set('affiliateId',affiliate);
       let body;
-      try{body=await pacedRequest(RANKING_API,params,headers);}
+      try{body=await pacedRequest(RANKING_API,params,headers,'GENRE_RANKING',genre.id);}
       catch(e){if(String(e?.message||'').startsWith('RAKUTEN_'))throw e;continue;}
       if(!body)continue;
       const entries=Array.isArray(body.Items)?body.Items:Array.isArray(body.items)?body.items:[];
@@ -231,7 +258,7 @@ export async function refreshRecommended(env,{date=currentJstDay(),origin=env.RA
         const params=new URLSearchParams({format:'json',formatVersion:'2',applicationId:app,keyword:t.term,hits:'20'});
         if(affiliate)params.set('affiliateId',affiliate);
         let body;
-        try{body=await pacedRequest(SEARCH_API,params,headers);}catch(e){if(String(e.message).startsWith('RAKUTEN_'))throw e;continue;}
+        try{body=await pacedRequest(SEARCH_API,params,headers,'TREND_SEARCH');}catch(e){if(String(e.message).startsWith('RAKUTEN_'))throw e;continue;}
         if(!body)continue;
         const entries=Array.isArray(body.Items)?body.Items:Array.isArray(body.items)?body.items:[];
         const group={id:`trend${added}`,name:`検索トレンド関連：${t.term}`};
@@ -249,9 +276,12 @@ export async function refreshRecommended(env,{date=currentJstDay(),origin=env.RA
     return {ok:true,day:date,count:items.length,genres:new Set(items.map(p=>p.categoryId)).size,trends:items.filter(p=>p.isTrend).length,selectedByAI:aiIds.length>0};
   }catch(e){
     const errorCode=(e instanceof Error?e.message:'UNKNOWN').replace(/[^A-Z0-9_]/g,'').slice(0,55)||'UNKNOWN';
+    const diagnostic=e?.shelfDiagnostic||{};
     await env.DB.prepare("UPDATE yodan_recommended_shelves SET products_json=?,status='failed',updated_at=? WHERE day=? AND status='generating'")
-      .bind(JSON.stringify({errorCode}),new Date().toISOString(),date).run();
-    console.error('Recommended shelf refresh failed',{reason:errorCode});
+      .bind(JSON.stringify({errorCode,...diagnostic}),new Date().toISOString(),date).run();
+    console.error('Recommended shelf refresh failed',{reason:errorCode,
+      stage:diagnostic.stage||null,providerErrorCode:diagnostic.providerErrorCode||null,
+      parameterHint:diagnostic.parameterHint||null,affectedGenreId:diagnostic.affectedGenreId||null});
     return {ok:false,reason:'RECOMMENDATION_REFRESH_FAILED'};
   }
 }

@@ -140,3 +140,30 @@ test('trend opt-in: only observed matching search products are mixed, not invent
   assert.ok(trendy.every(x=>x.name.includes('Switch2 ケース')&&x.reason.includes('商品自体の流行・販売数は未確認')));
   assert.ok(!items.some(x=>x.name.includes('全く関係のない')));
 });
+
+test('HTTP 400 diagnosis identifies endpoint and safe parameter without revealing secrets or touching existing posting',async()=>{
+  for (const scenario of [
+    {stage:'GENRE_ROOT',target:'IchibaGenre',description:'specify valid applicationId',hint:'APP_ID'},
+    {stage:'GENRE_RANKING',target:'IchibaItem/Ranking',description:'invalid genreId parameter',hint:'GENRE_ID'},
+    {stage:'GENRE_ROOT',target:'IchibaGenre',description:'unrecognized client issue: key=VERY_SECRET',hint:null}
+  ]) {
+    const db=fakeDb(),env=credentials(db);
+    const fetcher=async (url,opts)=>{
+      if(url.includes(scenario.target))return Response.json({error:'wrong_parameter',error_description:scenario.description},{status:400});
+      return fakeFetch(url,opts);
+    };
+    const ret=await refreshRecommended(env,{date:'2026-11-12',fetcher,pause:async()=>{}});
+    assert.equal(ret.ok,false);
+    const stored=JSON.parse(db.records.get('2026-11-12').products_json);
+    assert.equal(stored.stage,scenario.stage);
+    assert.equal(stored.providerErrorCode,'wrong_parameter');
+    assert.equal(stored.parameterHint,scenario.hint);
+    assert.match(stored.errorCode,new RegExp(`^RAKUTEN_${scenario.stage}_HTTP_400`));
+    assert.equal(JSON.stringify(stored).includes('VERY_SECRET'),false);
+    const visible=await getLatestRecommended(env,{date:'2026-11-12'});
+    assert.equal(visible.failureStage,scenario.stage);
+    assert.equal(visible.parameterHint,scenario.hint);
+    assert.equal(visible.providerErrorCode,'wrong_parameter');
+    assert.equal(visible.items.length,0);
+  }
+});
