@@ -34,9 +34,9 @@ function fakeDb(){
       records.set(day,{day,products_json:'[]',status:'generating',created_at:created,updated_at:updated});return {meta:{changes:1}};
     }
     if(sql.startsWith('UPDATE yodan_recommended_shelves')){
-      const success=sql.includes("status='published'"),[products,updated,day]=success?bind:[null,...bind];
+      const success=sql.includes("status='published'"),[products,updated,day]=bind;
       const old=records.get(day);if(!old||old.status!=='generating')return {meta:{changes:0}};
-      records.set(day,{...old,status:success?'published':'failed',products_json:success?products:old.products_json,updated_at:updated});return {meta:{changes:1}};
+      records.set(day,{...old,status:success?'published':'failed',products_json:products,updated_at:updated});return {meta:{changes:1}};
     }
     throw Error('unexpected run '+sql);
   }};return st;}}};
@@ -63,23 +63,24 @@ test('root genres are from live response and restricted/duplicate fallback categ
 test('new snapshot caches curated products for one day, does not touch old posts or existing ranking tables',async()=>{
   const db=fakeDb(),env=credentials(db),requests=[];
   const fetcher=async (...args)=>{requests.push(args[0]);return fakeFetch(...args)};
-  const first=await refreshRecommended(env,{date:'2026-11-11',fetcher});
+  const first=await refreshRecommended(env,{date:'2026-11-11',fetcher,pause:async()=>{}});
   assert.equal(first.ok,true);assert.equal(first.count,48);
   assert.equal(first.genres>=12,true);
-  assert.equal(requests.length,17,'one live genre request + sixteen category rankings');
+  assert.equal(requests.length,13,'one live genre request + twelve category rankings');
   const saved=await getLatestRecommended(env,{date:'2026-11-11'});
   assert.equal(saved.current,true);assert.equal(saved.items.length,48);
-  assert.equal((await refreshRecommended(env,{date:'2026-11-11',fetcher})).alreadyExists,true);
-  assert.equal(requests.length,17,'no repeat API quota spent on already published date');
+  assert.equal((await refreshRecommended(env,{date:'2026-11-11',fetcher,pause:async()=>{}})).alreadyExists,true);
+  assert.equal(requests.length,13,'no repeat API quota spent on already published date');
   assert.deepEqual(Object.keys(db.records.get('2026-11-11')).sort(),['created_at','day','products_json','status','updated_at']);
 });
 
 test('failed refresh leaves older published shelf intact and retries are rate-limited',async()=>{
   const db=fakeDb(),env=credentials(db);
-  assert.equal((await refreshRecommended(env,{date:'2026-11-10',fetcher:fakeFetch})).ok,true);
+  assert.equal((await refreshRecommended(env,{date:'2026-11-10',fetcher:fakeFetch,pause:async()=>{}})).ok,true);
   let calls=0;
-  const failed=await refreshRecommended(env,{date:'2026-11-11',fetcher:async()=>{calls++;return Response.json({error:'blocked'},{status:403})}});
+  const failed=await refreshRecommended(env,{date:'2026-11-11',fetcher:async()=>{calls++;return Response.json({error:'blocked'},{status:403})},pause:async()=>{}});
   assert.equal(failed.ok,false);assert.equal(calls,1);
+  assert.equal(JSON.parse(db.records.get('2026-11-11').products_json).errorCode,'RAKUTEN_FORBIDDEN_403');
   const saved=await getLatestRecommended(env,{date:'2026-11-11'});
   assert.equal(saved.day,'2026-11-10');assert.equal(saved.items.length,48);assert.equal(saved.current,false);
   assert.equal((await refreshRecommended(env,{date:'2026-11-11',fetcher:fakeFetch})).reason,'RETRY_COOLDOWN');
@@ -130,7 +131,7 @@ test('trend opt-in: only observed matching search products are mixed, not invent
     ]});
     return fakeFetch(url,opts);
   };
-  const res=await refreshRecommended(env,{date:'2026-11-11',now:new Date('2026-11-11T09:00:00.000Z'),fetcher});
+  const res=await refreshRecommended(env,{date:'2026-11-11',now:new Date('2026-11-11T09:00:00.000Z'),fetcher,pause:async()=>{}});
   assert.equal(res.ok,true);
   assert.ok(res.trends>0);
   const items=(await getLatestRecommended(env,{date:'2026-11-11'})).items;

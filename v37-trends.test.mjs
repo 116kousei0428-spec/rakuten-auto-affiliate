@@ -103,7 +103,7 @@ test('opt-in mixed automation publishes independent trivia without PR/article UR
    },
    async first(){
      if(sql.startsWith('SELECT enabled,daily_target FROM'))return {enabled:1,daily_target:20};
-     if(sql.startsWith('SELECT mix_enabled'))return {mix_enabled:1,trivia_share:50,trend_enabled:0};
+     if(sql.startsWith('SELECT mix_enabled'))return {mix_enabled:1,trivia_share:100,trend_enabled:0};
      if(sql.includes('SELECT COUNT(*) AS cnt')){
        const filtered=[...jobs.values()].filter(x=>x.status!=='failed'&&x.slot>=args[0]&&x.slot<args[1]);
        return {cnt:sql.includes('TRIVIA:%')?filtered.filter(x=>x.product_key?.startsWith('TRIVIA:')).length:filtered.length};
@@ -145,10 +145,10 @@ test('existing PR automation still follows ranking -> article -> Threads when ne
    },
    async all(){return {results:[]};}
  };}};
- const mockItem={name:'とてもおしゃれな保存ケース',url:'https://item.rakuten.co.jp/shop/case123/',code:'item:case123',price:2400,caption:'たくさんの小物を収納できる商品です。',rank:4};
+ const mockItem={name:'鉛筆の収納ケース',url:'https://item.rakuten.co.jp/shop/case123/',code:'item:case123',price:2400,caption:'たくさんの小物を収納できる商品です。',rank:4};
  const env={DB:db,RAKUTEN_SITE_ORIGIN:'https://shop.example',AI_ADMIN_TOKEN:'not-real',THREADS_ACCESS_TOKEN:'not-real',AI:{run:async()=>({response:JSON.stringify({
     greeting:'いらっしゃいませ。余談商店の店主です。',
-    trivia:'道具を選ぶとき、細かな使い勝手を考えてみるのも面白いものです。毎日目にする道具ほど、見慣れた風景の中で存在感を発揮するかもしれません。',
+    trivia:'鉛筆の芯には黒鉛と粘土などが使われています。金属の鉛は主成分ではありません。見慣れた文房具にも、意外な発見があります。',
     bridge:'今日ご紹介するのは小物の保存ケース。どう使うのか想像しながら記事を読んでいただければ幸いです。',
     goodbye:'それでは、また気が向いたら商店へお立ち寄りください。'
  })})}};
@@ -156,7 +156,7 @@ test('existing PR automation still follows ranking -> article -> Threads when ne
    const path=new URL(req.url).pathname;events.push(path);
    if(path==='/api/picks/ranking')return Response.json({items:[mockItem]});
    if(path==='/api/search')return Response.json({items:[mockItem]});
-   if(path==='/api/articles/generate')return Response.json({title:'小物ケースの紹介',markdown:'## 余談商店\n\nアフィリエイト広告を含みます。\n\n[商品](https://item.rakuten.co.jp/shop/case123/)',verifiedStoryFact:''});
+   if(path==='/api/articles/generate')return Response.json({title:'小物ケースの紹介',markdown:'## 余談商店\n\nアフィリエイト広告を含みます。\n\n[商品](https://item.rakuten.co.jp/shop/case123/)',verifiedStoryFact:'鉛筆の芯には黒鉛と粘土などが使われています。金属の鉛は主成分ではありません。'});
    if(path.startsWith('/api/social/threads/'))return Response.json({status:'published',postId:'mock-post'});
    throw Error('Unexpected url '+path);
  };

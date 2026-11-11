@@ -9,6 +9,13 @@ const PICKS = `CREATE TABLE IF NOT EXISTS yodan_auto_products (product_key TEXT 
 // Separate settings preserve older installations and existing D1 rows without ALTER TABLE.
 const EXTRAS = `CREATE TABLE IF NOT EXISTS yodan_auto_extras (id INTEGER PRIMARY KEY CHECK(id=1),mix_enabled INTEGER NOT NULL DEFAULT 0,trivia_share INTEGER NOT NULL DEFAULT 50,trend_enabled INTEGER NOT NULL DEFAULT 0)`;
 const MAX_TARGET=48; // 30-minute cron has at most 48 opportunities per day.
+// Schedule at fixed JST half-hour slots; never compress missed/failed posts into
+// unscheduled windows. A target is a cap, not a guaranteed delivery count.
+export function scheduledPostingSlot(halfHourIndex, dailyTarget){
+  if(!Number.isInteger(halfHourIndex)||halfHourIndex<0||halfHourIndex>=48||
+     !Number.isInteger(dailyTarget)||dailyTarget<1||dailyTarget>MAX_TARGET)return false;
+  return Math.ceil((halfHourIndex+1)*dailyTarget/48)>Math.ceil(halfHourIndex*dailyTarget/48);
+}
 const keywords=['生活雑貨','家電','キッチン用品','収納','文房具','アウトドア','インテリア','美容用品','ペット用品','ファッション','スマホアクセサリー','食品','スポーツ用品','ホビー','防災用品','育児用品'];
 const iso=()=>new Date().toISOString();
 const japanParts=(date=new Date())=>{
@@ -79,17 +86,18 @@ export async function runAutomation(env,execute,{manual=false}={}){
   const jp=japanParts();
   const extra=await env.DB.prepare('SELECT mix_enabled,trivia_share,trend_enabled FROM yodan_auto_extras WHERE id=1').first();
   const dailyTarget=Math.min(MAX_TARGET,settings.daily_target);
-  const due=Math.ceil((Math.floor(jp.minutes/30)+1)*dailyTarget/48);
-  if(!manual && due<=0)return {ok:true,reason:'NOT_DUE'};
+  const halfHourIndex=Math.floor(jp.minutes/30);
+  // Only fixed clock windows may start automatic posts; no backlog or make-up bursts.
+  const windows=Array.from({length:48},(_,slot)=>slot).filter(slot=>scheduledPostingSlot(slot,dailyTarget));
+  const scheduledOrdinal=windows.indexOf(halfHourIndex);
+  if(!manual && scheduledOrdinal<0)return {ok:true,reason:'NOT_DUE'};
   const todayCount=await env.DB.prepare("SELECT COUNT(*) AS cnt FROM yodan_auto_jobs WHERE slot>=? AND slot<? AND status IN ('claimed','article_ready','sending','published','uncertain')").bind(jp.date,jp.date+'~').first();
   if(Number(todayCount?.cnt||0)>=dailyTarget)return {ok:true,reason:'DAILY_LIMIT'};
-  if(!manual && Number(todayCount?.cnt||0)>=due)return {ok:true,reason:'NOT_DUE'};
-  // Mix is opt-in: existing installations continue their original product posting.
   const mixEnabled=extra?.mix_enabled===1;
+  const plannedOrdinal=manual?Math.min(dailyTarget-1,Number(todayCount?.cnt||0)):scheduledOrdinal;
   const triviaTarget=mixEnabled?Math.round(dailyTarget*Math.max(0,Math.min(100,Number(extra.trivia_share)))/100):0;
-  const desiredTrivia=Math.round((manual?Math.min(dailyTarget,Number(todayCount?.cnt||0)+1):due)*triviaTarget/dailyTarget);
-  const triviaCount=triviaTarget>0?await env.DB.prepare("SELECT COUNT(*) AS cnt FROM yodan_auto_jobs WHERE slot>=? AND slot<? AND product_key LIKE 'TRIVIA:%' AND status IN ('claimed','article_ready','sending','published','uncertain')").bind(jp.date,jp.date+'~').first():null;
-  const isTrivia=triviaTarget>0 && Number(triviaCount?.cnt||0)<desiredTrivia;
+  const isTrivia=mixEnabled && Math.floor((plannedOrdinal+1)*triviaTarget/dailyTarget)>Math.floor(plannedOrdinal*triviaTarget/dailyTarget);
+  const triviaCount=isTrivia?await env.DB.prepare("SELECT COUNT(*) AS cnt FROM yodan_auto_jobs WHERE slot>=? AND slot<? AND product_key LIKE 'TRIVIA:%' AND status IN ('claimed','article_ready','sending','published','uncertain')").bind(jp.date,jp.date+'~').first():null;
   // One slot per cron window, reserved atomically before calling any external service.
   const slot=`${jp.date}:${String(Math.floor(jp.minutes/30)).padStart(2,'0')}`;
   const now=iso();
@@ -141,6 +149,10 @@ export async function runAutomation(env,execute,{manual=false}={}){
     const generated=await internalJson(execute,origin,'/api/articles/generate',{method:'POST',headers,body:JSON.stringify({item:p,tone:'標準'})});
     const title=generated.title,markdown=generated.markdown;
     if(!title || !markdown || !markdown.includes('アフィリエイト広告'))throw new Error('INVALID_ARTICLE');
+    // An empathetic shopping observation alone is not a fact. Keep the current
+    // successful publishing pipeline, but reject unsupported auto-PR copy.
+    if(typeof generated.verifiedStoryFact!=='string' || [...generated.verifiedStoryFact.trim()].length<25)
+      throw new Error('NO_VERIFIED_PRODUCT_TRIVIA');
     const ts=iso();
     // Commit both a saved draft and a public snapshot (same as v21 publication semantics).
     await env.DB.prepare("CREATE TABLE IF NOT EXISTS article_drafts (id TEXT PRIMARY KEY,title TEXT NOT NULL,markdown TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'draft' CHECK(status='draft'),created_at TEXT NOT NULL,updated_at TEXT NOT NULL)").run();

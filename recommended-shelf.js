@@ -11,10 +11,11 @@ const RANKING_API = 'https://openapi.rakuten.co.jp/ichibaranking/api/IchibaItem/
 const SEARCH_API = 'https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260701';
 const MODEL = '@cf/google/gemma-4-26b-a4b-it';
 const TARGET = 48; // Four shelves of four columns × three rows
-const GROUPS_PER_DAY = 16;
+const GROUPS_PER_DAY = 12; // Twelve distinct genres; four items per genre across four shelves
 const LOCK_MS = 20 * 60 * 1000;
-const RETRY_MS = 60 * 60 * 1000;
+const RETRY_MS = 5 * 60 * 1000; // Freshly deployed shelves may retry safely after an initial failure
 const MAX_TREND_QUERIES = 2;
+const MIN_REQUEST_GAP_MS = 1250; // Official Rakuten limit: <= one request per app ID per second
 const BLOCK = /はちみつ|蜂蜜|アダルト|成人向け|タバコ|たばこ|電子タバコ|ニコチン|ビール|日本酒|焼酎|ワイン|ウイスキー|シャンパン|チューハイ|ふるさと納税|商品券|金券|ギフトカード|医薬品|処方箋|処方薬|ダイエットサプリ|CBD|THC|大麻|銃|エアガン|刃物|殺虫剤|農薬|宝くじ|競馬|パチンコ/i;
 const BLOCK_GENRE = /ふるさと納税|医薬品|医療|アダルト|タバコ|酒類|ビール|ワイン|日本酒|焼酎|ウイスキー|サービス|旅行・出張|チケット|金券|ギフトカード|電子書籍|ダウンロード|投資|保険/i;
 const norm = v => String(v ?? '').normalize('NFKC').replace(/\s+/g,' ').trim();
@@ -94,7 +95,7 @@ export function pickDiversifiedProducts(groups, {limit=TARGET, aiIds=[]} = {}) {
       for(const group of ordered){
         if(current.length>=12 || overall.length>=limit)break;
         if(passes<3 && usedCategories.has(group.id))continue;
-        if((useCounts.get(group.id)||0)>=3)continue;
+        if((useCounts.get(group.id)||0)>=4)continue;
         const index=group.queue.findIndex(item => !usedCodes.has(item.code)&&!usedTitles.has(keyOf(item.name)) &&
           (!item.shop || (usedShops.get(item.shop)||0)<(passes<3?1:2)));
         if(index<0)continue;
@@ -124,7 +125,14 @@ export async function getLatestRecommended(env,{date=currentJstDay()}={}) {
   if(!validDay(date)||!env.DB?.prepare)return {...empty,pending:false};
   await ensureRecommendedTable(env);
   const row=await env.DB.prepare("SELECT day,products_json,updated_at FROM yodan_recommended_shelves WHERE day<=? AND status='published' ORDER BY day DESC LIMIT 1").bind(date).first();
-  if(!row)return empty;
+  if(!row){
+    const attempt=await env.DB.prepare('SELECT status,updated_at,products_json FROM yodan_recommended_shelves WHERE day=?').bind(date).first();
+    let failureCode=null;
+    if(attempt?.status==='failed'){
+      try{failureCode=JSON.parse(attempt.products_json)?.errorCode||'RECOMMENDATION_FAILED';}catch{failureCode='RECOMMENDATION_FAILED';}
+    }
+    return {...empty,pending:attempt?.status!=='failed',status:attempt?.status||'not_started',failureCode,updatedAt:attempt?.updated_at||null};
+  }
   try{
     const items=JSON.parse(row.products_json);
     if(!Array.isArray(items)||items.length<12||items.length>TARGET||items.some(x=>!x?.name||!x?.url||!x?.genre))return empty;
@@ -133,8 +141,9 @@ export async function getLatestRecommended(env,{date=currentJstDay()}={}) {
 }
 async function requestJson(fetcher,endpoint,params,headers) {
   const res=await fetcher(`${endpoint}?${params}`,{method:'GET',headers,signal:AbortSignal.timeout(12000)});
-  if(res.status===429||res.status===403)throw Error(`API_LIMIT_${res.status}`);
-  if(!res.ok)return null;
+  if(res.status===429)throw Error('RAKUTEN_RATE_LIMIT_429');
+  if(res.status===403)throw Error('RAKUTEN_FORBIDDEN_403');
+  if(!res.ok)throw Error(`RAKUTEN_API_HTTP_${res.status}`);
   const body=await res.json();
   return body?.error || body?.errors ? null : body;
 }
@@ -155,7 +164,7 @@ async function aiCurate(env,groups) {
     return normalizeAiIds(result,new Set(shortlist.map(p=>p.id)));
   }catch{console.error('Shop shelf AI selection unavailable; ranked diversity fallback');return [];}
 }
-export async function refreshRecommended(env,{date=currentJstDay(),origin=env.RAKUTEN_SITE_ORIGIN,fetcher=fetch,now=new Date()}={}) {
+export async function refreshRecommended(env,{date=currentJstDay(),origin=env.RAKUTEN_SITE_ORIGIN,fetcher=fetch,now=new Date(),pause=(ms)=>new Promise(resolve=>setTimeout(resolve,ms))}={}) {
   if(!validDay(date)||!env.DB?.prepare)return {ok:false,reason:'DB_UNAVAILABLE'};
   const app=secret(env.RAKUTEN_APP_ID),accessKey=secret(env.RAKUTEN_ACCESS_KEY),affiliate=secret(env.RAKUTEN_AFFILIATE_ID),allowedOrigin=safeOrigin(origin);
   if(!app||!accessKey||!allowedOrigin)return {ok:false,reason:'RAKUTEN_SETTINGS_MISSING'};
@@ -170,9 +179,21 @@ export async function refreshRecommended(env,{date=currentJstDay(),origin=env.RA
     .bind(date,stamp,stamp,new Date(now.getTime()-LOCK_MS).toISOString(),new Date(now.getTime()-RETRY_MS).toISOString()).run();
   if(!lock.meta?.changes)return {ok:false,reason:'BUSY'};
   try{
+    // A single refresh can issue several different Rakuten API requests.
+    // Never launch a parallel burst: application IDs are limited to one request/second.
+    let lastRequestAt=null;
+    const pacedRequest=async(endpoint,params,headers)=>{
+      const started=Date.now();
+      if(lastRequestAt!==null){
+        const delay=Math.max(0,MIN_REQUEST_GAP_MS-(started-lastRequestAt));
+        if(delay)await pause(delay);
+      }
+      lastRequestAt=Date.now();
+      return requestJson(fetcher,endpoint,params,headers);
+    };
     const headers={Accept:'application/json',accessKey,Origin:allowedOrigin,Referer:`${allowedOrigin}/`};
     const params=new URLSearchParams({format:'json',formatVersion:'2',applicationId:app,genreId:'0'});
-    const root=await requestJson(fetcher,ROOT_API,params,headers);
+    const root=await pacedRequest(ROOT_API,params,headers);
     if(!root)throw Error('GENRE_ROOT_UNAVAILABLE');
     const allGenres=parseRootGenres(root);
     if(allGenres.length<12)throw Error('NOT_ENOUGH_GENRES');
@@ -182,21 +203,16 @@ export async function refreshRecommended(env,{date=currentJstDay(),origin=env.RA
     const genres = Array.from({length:Math.min(GROUPS_PER_DAY,allGenres.length)},(_,i)=>
       allGenres[(Math.floor(i*allGenres.length/Math.min(GROUPS_PER_DAY,allGenres.length))+offset)%allGenres.length]);
     const groups=[];
-    // Four distinct genre-ranking requests at a time; avoid a long serial waitUntil.
-    for(let start=0;start<genres.length;start+=4){
-      const batch=await Promise.all(genres.slice(start,start+4).map(async genre=>{
-        const params=new URLSearchParams({format:'json',formatVersion:'2',applicationId:app,genreId:genre.id});
-        if(affiliate)params.set('affiliateId',affiliate);
-        try{
-          const body=await requestJson(fetcher,RANKING_API,params,headers);
-          if(!body)return {genre,items:[]};
-          const entries=Array.isArray(body.Items)?body.Items:Array.isArray(body.items)?body.items:[];
-          const items=canonical(entries.map((item,i)=>productFromEntry(item,genre,false,i,null)).filter(x=>x&&x.rank)).sort((a,b)=>b.score-a.score).slice(0,9);
-          return {genre,items};
-        }catch(e){return {genre,items:[],blocked:String(e?.message||'').startsWith('API_LIMIT')};}
-      }));
-      if(batch.some(x=>x.blocked))throw Error('API_LIMIT');
-      for(const x of batch)if(x.items.length)groups.push({...x.genre,items:x.items});
+    for(const genre of genres){
+      const params=new URLSearchParams({format:'json',formatVersion:'2',applicationId:app,genreId:genre.id});
+      if(affiliate)params.set('affiliateId',affiliate);
+      let body;
+      try{body=await pacedRequest(RANKING_API,params,headers);}
+      catch(e){if(String(e?.message||'').startsWith('RAKUTEN_'))throw e;continue;}
+      if(!body)continue;
+      const entries=Array.isArray(body.Items)?body.Items:Array.isArray(body.items)?body.items:[];
+      const items=canonical(entries.map((item,i)=>productFromEntry(item,genre,false,i,null)).filter(x=>x&&x.rank)).sort((a,b)=>b.score-a.score).slice(0,9);
+      if(items.length)groups.push({...genre,items});
     }
     // Reuse the v37 opt-in trend snapshot; never hit public social APIs or guess a trend.
     let trends=null;
@@ -215,7 +231,7 @@ export async function refreshRecommended(env,{date=currentJstDay(),origin=env.RA
         const params=new URLSearchParams({format:'json',formatVersion:'2',applicationId:app,keyword:t.term,hits:'20'});
         if(affiliate)params.set('affiliateId',affiliate);
         let body;
-        try{body=await requestJson(fetcher,SEARCH_API,params,headers);}catch(e){if(String(e.message).startsWith('API_LIMIT'))break;continue;}
+        try{body=await pacedRequest(SEARCH_API,params,headers);}catch(e){if(String(e.message).startsWith('RAKUTEN_'))throw e;continue;}
         if(!body)continue;
         const entries=Array.isArray(body.Items)?body.Items:Array.isArray(body.items)?body.items:[];
         const group={id:`trend${added}`,name:`検索トレンド関連：${t.term}`};
@@ -232,8 +248,10 @@ export async function refreshRecommended(env,{date=currentJstDay(),origin=env.RA
     if(!updated.meta?.changes)throw Error('PUBLISH_RACE');
     return {ok:true,day:date,count:items.length,genres:new Set(items.map(p=>p.categoryId)).size,trends:items.filter(p=>p.isTrend).length,selectedByAI:aiIds.length>0};
   }catch(e){
-    await env.DB.prepare("UPDATE yodan_recommended_shelves SET status='failed',updated_at=? WHERE day=? AND status='generating'").bind(new Date().toISOString(),date).run();
-    console.error('Recommended shelf refresh failed',{reason:(e instanceof Error?e.message:'UNKNOWN').replace(/[^A-Z0-9_]/g,'').slice(0,55)});
+    const errorCode=(e instanceof Error?e.message:'UNKNOWN').replace(/[^A-Z0-9_]/g,'').slice(0,55)||'UNKNOWN';
+    await env.DB.prepare("UPDATE yodan_recommended_shelves SET products_json=?,status='failed',updated_at=? WHERE day=? AND status='generating'")
+      .bind(JSON.stringify({errorCode}),new Date().toISOString(),date).run();
+    console.error('Recommended shelf refresh failed',{reason:errorCode});
     return {ok:false,reason:'RECOMMENDATION_REFRESH_FAILED'};
   }
 }

@@ -124,10 +124,11 @@ button.secondary,.shelf-back{background:#eee0c0!important;color:#593e25!importan
   </section>
   <section class="panel" id="picks-section">
     <div class="panel-heading"><span class="section-icon" aria-hidden="true">🌿</span><div><small class="section-kicker">THE SHOPKEEPER'S PICKS</small><h2>人気のもの・商店おすすめ <span class="new-mark">PICK UP</span></h2></div></div>
-    <p class="help">楽天ランキングは従来どおり1〜40位を表示。商店おすすめは楽天のジャンル別ランキングから商品を一つずつ選び、棚ごとにジャンルが偏らないよう配置します。Google Trends連携がONなら、関連検索語から見つかった商品候補も反映します。検索トレンドは商品の売上やSNS人気の保証ではありません。取得失敗時は編集候補を表示します。<a href="https://webservice.rakuten.co.jp/documentation/ichiba-item-ranking" target="_blank" rel="noopener noreferrer">楽天APIの説明</a>。<a href="https://corp.rakuten.co.jp/news/press/2026/1028_01.html" target="_blank" rel="noopener noreferrer">編集候補の元になった楽天の2026年冬予測</a>。</p>
+    <p class="help">楽天ランキングは従来どおり1〜40位を表示。商店おすすめは楽天のジャンル別ランキングから商品を一つずつ選び、棚ごとにジャンルが偏らないよう配置します。Google Trends連携がONなら、関連検索語から見つかった商品候補も反映します。検索トレンドは商品の売上やSNS人気の保証ではありません。取得できない場合は原因を表示し、実商品ではない候補をおすすめ商品として表示しません。<a href="https://webservice.rakuten.co.jp/documentation/ichiba-item-ranking" target="_blank" rel="noopener noreferrer">楽天APIの説明</a>。<a href="https://corp.rakuten.co.jp/news/press/2026/1028_01.html" target="_blank" rel="noopener noreferrer">編集候補の元になった楽天の2026年冬予測</a>。</p>
     <div class="actions" style="margin-top:12px">
       <button id="load-ranking" type="button">楽天ランキングを見る</button>
       <button id="show-editor-picks" class="secondary" type="button">商店おすすめを見る</button>
+      <button id="show-topic-picks" class="secondary" type="button">テーマから探す</button>
       <button id="refresh-editor-picks" class="secondary" type="button">別の棚を見る</button>
     </div>
     <div class="actions"><button id="shelf-back" class="shelf-back" type="button" hidden>← 前の棚に戻る</button><button id="topic-back" class="shelf-back" type="button" hidden>← この棚の品揃えに戻る</button></div>
@@ -164,7 +165,7 @@ button.secondary,.shelf-back{background:#eee0c0!important;color:#593e25!importan
   </section>
   <section class="panel" id="automation-section">
     <div class="panel-heading"><span class="section-icon">⚙️</span><div><small class="section-kicker">AUTOMATIC THREADS</small><h2>Threads自動投稿</h2></div></div>
-    <p class="help">初期状態は停止。公開ドメイン設定とAPI接続を確認してから有効にしてください。日本時間の30分単位で分散実行します。画像は個別の転載許可を確認できる場合だけ使用し、現時点の自動投稿はテキストのみです。</p>
+    <p class="help">初期状態は停止。公開ドメイン設定とAPI接続を確認してから有効にしてください。30分ごとに実行判定します。20件／日なら通常60〜90分おきに投稿します。失敗分を短時間に詰め込まず、実際の投稿件数は目標を下回る場合があります。画像は個別の転載許可を確認できる場合だけ使用し、現時点の自動投稿はテキストのみです。</p>
     <div class="settings"><label for="auto-target">1日の目標投稿数</label><input type="number" min="1" max="48" value="20" id="auto-target" style="max-width:150px"><label for="auto-enabled">自動投稿</label><label class="case-option" style="margin:0"><input type="checkbox" id="auto-enabled"><span class="case-switch"></span><span>有効にする</span></label></div>
     <div class="settings" style="margin-top:14px;gap:12px;flex-wrap:wrap">
       <label class="auto-option"><input type="checkbox" id="auto-mix"> PRと純粋な雑学を混ぜて投稿する</label>
@@ -579,12 +580,17 @@ let activeRecommendationShelfCount=4;
 const loadRecommendedProducts=async(requestId,page,attempt=0)=>{
   try{
     const response=await fetch('/api/picks/recommended',{cache:'no-store'});
-    if(!response.ok)return; // Keep the editorial fallback on network/DB outages.
+    if(!response.ok)throw Error('RECOMMENDATION_API_FAILED');
     const data=await response.json();
     if(requestId!==recommendationRequestId)return;
     const products=Array.isArray(data.items)?data.items.filter(x=>x&&x.name&&x.url&&x.genre&&x.price>0):[];
     if(!products.length){
-      if(data.pending && attempt<4)setTimeout(()=>loadRecommendedProducts(requestId,page,attempt+1),15000);
+      if(data.pending && attempt<6){
+        picksStatus.textContent='ジャンル別の実商品を取得しています。おすすめ棚の生成完了を確認中…';
+        setTimeout(()=>loadRecommendedProducts(requestId,page,attempt+1),15000);
+      }else{
+        picksStatus.textContent=`ジャンル別おすすめを取得できていません。${data.failureCode?'エラー: '+data.failureCode+'。':''}時間をおいて再表示してください。「楽天ランキングを見る」では実商品を確認できます。`;
+      }
       return;
     }
     activeRecommendationShelfCount=Math.ceil(products.length/PICKS_PER_SHELF);
@@ -597,7 +603,14 @@ const loadRecommendedProducts=async(requestId,page,attempt=0)=>{
     const trends=shelf.filter(p=>p.isTrend).length;
     picksStatus.textContent=`商店おすすめ ${safePage+1}/${activeRecommendationShelfCount}棚：${shelf.length}商品・${genres}ジャンルを個別選定。${trends?'検索トレンド関連'+trends+'件を含む。':''}${data.current?'本日更新':'前回の棚を維持'}（SNSでの流行は未検証）。`;
     pickAttribution.hidden=false;
-  }catch{/* Keep the editorial fallback. */}
+  }catch{if(requestId===recommendationRequestId)picksStatus.textContent='おすすめ商品の取得に失敗しました。「楽天ランキングを見る」で実商品を確認できます。';}
+};
+const showRecommendations = () => {
+  pickResults.replaceChildren();pickAttribution.hidden=true;editorPicks.hidden=true;
+  $('#topic-back').hidden=true;
+  picksStatus.textContent='ジャンル別の実商品を読み込み中…';
+  const requestId=++recommendationRequestId;
+  void loadRecommendedProducts(requestId,pickPage);
 };
 const showEditorPickTopics = () => {
   pickResults.replaceChildren(); pickAttribution.hidden = true;
@@ -606,8 +619,7 @@ const showEditorPickTopics = () => {
   editorPicks.replaceChildren();
   picksStatus.textContent = `おすすめ ${pickPage+1} / ${PICK_SHELF_COUNT}棚（最大12テーマ）。楽天の売れ筋・年代別ランキングを基にした候補を表示しています。選択すると実際の商品が見られます。`;
   dailyPicksMetaEl.textContent=dailyPickExplanation();
-  const requestId=++recommendationRequestId;
-  void loadRecommendedProducts(requestId,pickPage);
+  recommendationRequestId++; // Explicit theme mode: do not silently overwrite with product cards.
   for (const topic of rotatingPickTopics()) {
     const button = document.createElement('button');button.type='button';button.className='pick-topic';
     const name=document.createElement('strong');name.textContent=topic.name;
@@ -626,14 +638,25 @@ const showEditorPickTopics = () => {
 const shelfTrail=[];
 const shelfBack=$('#shelf-back');
 const updateShelfBack=()=>{shelfBack.hidden=shelfTrail.length===0;};
-shelfBack.addEventListener('click',()=>{if(!shelfTrail.length)return;pickPage=shelfTrail.pop();showEditorPickTopics();const topic=rotatingPickTopics()[0];if(topic)searchProducts(topic.keyword,pickResults,picksStatus);updateShelfBack();document.getElementById('picks-section').scrollIntoView({block:'start'});});
+shelfBack.addEventListener('click',()=>{if(!shelfTrail.length)return;const themes=!editorPicks.hidden;pickPage=shelfTrail.pop();if(themes)showEditorPickTopics();else showRecommendations();updateShelfBack();document.getElementById('picks-section').scrollIntoView({block:'start'});});
 $('#topic-back').addEventListener('click',()=>{showEditorPickTopics();$('#picks-section').scrollIntoView({block:'start'});});
-editorButton.addEventListener('click',()=>{shelfTrail.length=0;pickPage=0;showEditorPickTopics();const t=rotatingPickTopics()[0];if(t)searchProducts(t.keyword,pickResults,picksStatus);updateShelfBack();});
-$('#refresh-editor-picks').addEventListener('click',()=>{const count=Math.max(1,activeRecommendationShelfCount);if(pickPage+1>=count)shelfTrail.length=0;else shelfTrail.push(pickPage);if(count===PICK_SHELF_COUNT)pickPage=(pickPage+1)%PICK_SHELF_COUNT;else pickPage=(pickPage+1)%count;showEditorPickTopics();updateShelfBack();});
+editorButton.addEventListener('click',()=>{shelfTrail.length=0;pickPage=0;showRecommendations();updateShelfBack();});
+$('#show-topic-picks').addEventListener('click',()=>{shelfTrail.length=0;pickPage=0;showEditorPickTopics();updateShelfBack();});
+$('#refresh-editor-picks').addEventListener('click',()=>{
+  if(!editorPicks.hidden){
+    if(pickPage+1>=PICK_SHELF_COUNT)shelfTrail.length=0;else shelfTrail.push(pickPage);
+    pickPage=(pickPage+1)%PICK_SHELF_COUNT;showEditorPickTopics();
+  }else{
+    const count=Math.max(1,activeRecommendationShelfCount);
+    if(pickPage+1>=count)shelfTrail.length=0;else shelfTrail.push(pickPage);
+    pickPage=(pickPage+1)%count;showRecommendations();
+  }
+  updateShelfBack();
+});
 loadDailyPickTopics();
 setInterval(loadDailyPickTopics,5*60*1000);
 let currentPickSlot=Math.floor(Date.now()/PICK_ROTATION_MS);
-setInterval(()=>{const slot=Math.floor(Date.now()/PICK_ROTATION_MS);if(slot!==currentPickSlot){currentPickSlot=slot;pickPage=0;shelfTrail.length=0;showEditorPickTopics();const t=rotatingPickTopics()[0];if(t)searchProducts(t.keyword,pickResults,picksStatus);}},60000);
+setInterval(()=>{const slot=Math.floor(Date.now()/PICK_ROTATION_MS);if(slot!==currentPickSlot){currentPickSlot=slot;if(!editorPicks.hidden){pickPage=0;shelfTrail.length=0;showEditorPickTopics();updateShelfBack();}}},60000);
 rankingButton.addEventListener('click', async () => {
   rankingButton.disabled = true;
   recommendationRequestId++;

@@ -46,7 +46,7 @@ export function composeNarrative({greeting,trivia,bridge,goodbye,articleUrl,isPr
   if(chars(parts[2])<16||chars(parts[2])>145)return null;
   if(!/^https:\/\/[^\s]+$/.test(articleUrl))return null;
   // The complete source-approved fact must survive rewriting unchanged.
-  if(verifiedFact && !parts[1].includes(verifiedFact))return null;
+  if(verifiedFact && !parts[1].startsWith(verifiedFact))return null;
   const post=`${isPromotion?'【PR】\n\n':''}${parts[0]}\n\n${parts[1]}\n\n${parts[2]}\n\n${articleUrl}\n\n${parts[3]}`;
   if(chars(post)>500||post===previousBody)return null;
   return post;
@@ -64,14 +64,14 @@ export async function generateNarrative({env,title,markdown,articleUrl,isPromoti
 長い楽天商品名・クーポン・無料特典・SEOの羅列をそのまま読み上げない。商品は短い自然な名称で呼ぶ。
 最初の挨拶には「余談商店」を含める。毎回同じ書き出しや結びにしない。商品紹介は2〜3文で、記事へ自然につなげる。読んで「へぇ」となる展開と文章のリズムを優先し、「買い物の小ネタ」「サイズを確認しましょう」といったどの品にも当てはまる一般論、機械的な定型表現を禁止。
 商品記事は参考資料だが、事実検証済みとは限らない。広告文や記事中の記述から商品の性能・歴史・医療効果・売れ筋・レビューなどを事実として勝手に作らない。
-検証済み雑学が与えられた場合、その全文を一字も変えずにtriviaの中へ組み込む。与えられていなければ、断定的な知識の創作は避け、商品そのものの見方や使う場面への魅力的な問いかけ・着眼点で余談を作る。検証不能な話は書かない。
+検証済み雑学が与えられた場合、その全文を一字も変えずにtriviaの【文頭】に置く。その後ろに共感しやすい導入文を添える。与えられていなければ、断定的な知識の創作は避け、商品そのものの見方や使う場面への魅力的な問いかけ・着眼点で余談を作る。検証不能な話は書かない。
 返すのはJSONのみ。キーは greeting,trivia,bridge,goodbye の四つで、全て文字列。greeting 15〜50文字、trivia 80〜155文字、bridge 35〜85文字、goodbye 15〜38文字。リンクと【PR】はシステムが付けるため絶対に書かない。合計350文字程度に抑える。`;
   const context={商品名:product,記事本文参考:source,検証済み雑学:grounded||'なし（実証済み事実を創作してはいけない）',以前の投稿文:trimText(previousBody,400)||'なし'};
   for(let attempt=0;attempt<2;attempt++){
     let output;
     try {
       output=await env.AI.run('@cf/google/gemma-4-26b-a4b-it',{
-        messages:[{role:'system',content:instruction},{role:'user',content:`商品と記事の情報：${JSON.stringify(context)}\n以前の投稿文とは表現を変えて、新たな余談を考えてください。${attempt?'前回は書式・長さ・事実の制約を満たしませんでした。必ずJSONの4文字列で、検証済み雑学は一字一句そのまま含めてください。':''}`}],
+        messages:[{role:'system',content:instruction},{role:'user',content:`商品と記事の情報：${JSON.stringify(context)}\n以前の投稿文とは表現を変えて、新たな余談を考えてください。${attempt?'前回は書式・長さ・事実の制約を満たしませんでした。必ずJSONの4文字列で、検証済み雑学の全文でtriviaを開始してください。':''}`}],
         max_completion_tokens:900,temperature:attempt?0.75:0.85,chat_template_kwargs:{enable_thinking:false}
       });
     }catch(error){
