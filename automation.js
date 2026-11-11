@@ -1,9 +1,13 @@
 import { generateNarrative } from './threads-story-ai.js';
+import { latestTrends, selectTrendKeyword, trendCandidateScore } from './trends.js';
+import { triviaAnchors } from './daily.js';
 // Yodan Shoten v22: server-side opt-in Threads automation.
 // The existing v21 generation and posting endpoints remain the source of truth.
 const SCHEMA = `CREATE TABLE IF NOT EXISTS yodan_auto_settings (id INTEGER PRIMARY KEY CHECK(id=1),enabled INTEGER NOT NULL DEFAULT 0,daily_target INTEGER NOT NULL DEFAULT 20,updated_at TEXT NOT NULL)`;
 const JOBS = `CREATE TABLE IF NOT EXISTS yodan_auto_jobs (slot TEXT PRIMARY KEY,product_key TEXT,article_id TEXT,status TEXT NOT NULL,detail TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL)`;
 const PICKS = `CREATE TABLE IF NOT EXISTS yodan_auto_products (product_key TEXT PRIMARY KEY,article_id TEXT NOT NULL,selected_at TEXT NOT NULL)`;
+// Separate settings preserve older installations and existing D1 rows without ALTER TABLE.
+const EXTRAS = `CREATE TABLE IF NOT EXISTS yodan_auto_extras (id INTEGER PRIMARY KEY CHECK(id=1),mix_enabled INTEGER NOT NULL DEFAULT 0,trivia_share INTEGER NOT NULL DEFAULT 50,trend_enabled INTEGER NOT NULL DEFAULT 0)`;
 const MAX_TARGET=48; // 30-minute cron has at most 48 opportunities per day.
 const keywords=['生活雑貨','家電','キッチン用品','収納','文房具','アウトドア','インテリア','美容用品','ペット用品','ファッション','スマホアクセサリー','食品','スポーツ用品','ホビー','防災用品','育児用品'];
 const iso=()=>new Date().toISOString();
@@ -13,16 +17,18 @@ const japanParts=(date=new Date())=>{
 };
 export async function ensureAutomationTables(env){
   if(!env.DB?.prepare) throw new Error('D1_MISSING');
-  for(const sql of [SCHEMA,JOBS,PICKS]) await env.DB.prepare(sql).run();
+  for(const sql of [SCHEMA,JOBS,PICKS,EXTRAS]) await env.DB.prepare(sql).run();
   await env.DB.prepare("INSERT OR IGNORE INTO yodan_auto_settings (id,enabled,daily_target,updated_at) VALUES (1,0,20,?)").bind(iso()).run();
+  await env.DB.prepare('INSERT OR IGNORE INTO yodan_auto_extras(id,mix_enabled,trivia_share,trend_enabled) VALUES(1,0,50,0)').run();
 }
 export async function automationStatus(env){
   await ensureAutomationTables(env);
   const settings=await env.DB.prepare('SELECT enabled,daily_target,updated_at FROM yodan_auto_settings WHERE id=1').first();
+  const extra=await env.DB.prepare('SELECT mix_enabled,trivia_share,trend_enabled FROM yodan_auto_extras WHERE id=1').first();
   const today=japanParts().date;
-  const logs=await env.DB.prepare('SELECT slot,status,article_id,detail,updated_at FROM yodan_auto_jobs ORDER BY created_at DESC LIMIT 50').all();
+  const logs=await env.DB.prepare('SELECT slot,product_key,status,article_id,detail,updated_at FROM yodan_auto_jobs ORDER BY created_at DESC LIMIT 50').all();
   const todayJobs=(logs.results||[]).filter(x=>x.slot.startsWith(today));
-  return {enabled:settings.enabled===1,dailyTarget:settings.daily_target,updatedAt:settings.updated_at,today,successToday:todayJobs.filter(x=>x.status==='published').length,logs:logs.results||[],imageAutoAttach:false,configuredOrigin:Boolean(env.AUTO_PUBLIC_ORIGIN||env.RAKUTEN_SITE_ORIGIN),automationReady:Boolean((env.AUTO_PUBLIC_ORIGIN||env.RAKUTEN_SITE_ORIGIN)&&env.AI_ADMIN_TOKEN&&env.THREADS_ACCESS_TOKEN&&env.AI&&env.DB)};
+  return {enabled:settings.enabled===1,dailyTarget:settings.daily_target,mixEnabled:extra?.mix_enabled===1,triviaShare:Number(extra?.trivia_share??50),trendEnabled:extra?.trend_enabled===1,updatedAt:settings.updated_at,today,successToday:todayJobs.filter(x=>x.status==='published').length,logs:logs.results||[],imageAutoAttach:false,configuredOrigin:Boolean(env.AUTO_PUBLIC_ORIGIN||env.RAKUTEN_SITE_ORIGIN),automationReady:Boolean((env.AUTO_PUBLIC_ORIGIN||env.RAKUTEN_SITE_ORIGIN)&&env.AI_ADMIN_TOKEN&&env.THREADS_ACCESS_TOKEN&&env.AI&&env.DB)};
 }
 export async function automationApi(request,env,execute){
   if(request.method==='GET')return Response.json(await automationStatus(env));
@@ -34,7 +40,12 @@ export async function automationApi(request,env,execute){
     if(typeof body?.enabled!=='boolean' || !Number.isInteger(body.dailyTarget)||body.dailyTarget<1||body.dailyTarget>MAX_TARGET)
       return Response.json({error:`投稿数は1〜${MAX_TARGET}件、ON/OFFは真偽値で指定してください。`},{status:400});
     await ensureAutomationTables(env);
+    // Backward compatible: requests from the previous admin UI leave new flags unchanged.
+    if ('mixEnabled' in body && typeof body.mixEnabled!=='boolean' || 'trendEnabled' in body && typeof body.trendEnabled!=='boolean' || 'triviaShare' in body && (!Number.isInteger(body.triviaShare)||body.triviaShare<0||body.triviaShare>100)) return Response.json({error:'雑学割合とトレンド設定が不正です。'},{status:400});
     await env.DB.prepare('UPDATE yodan_auto_settings SET enabled=?,daily_target=?,updated_at=? WHERE id=1').bind(body.enabled?1:0,body.dailyTarget,iso()).run();
+    const extra=await env.DB.prepare('SELECT mix_enabled,trivia_share,trend_enabled FROM yodan_auto_extras WHERE id=1').first();
+    await env.DB.prepare('UPDATE yodan_auto_extras SET mix_enabled=?,trivia_share=?,trend_enabled=? WHERE id=1')
+      .bind(('mixEnabled' in body?body.mixEnabled:extra.mix_enabled===1)?1:0,'triviaShare' in body?body.triviaShare:extra.trivia_share,('trendEnabled' in body?body.trendEnabled:extra.trend_enabled===1)?1:0).run();
     return Response.json(await automationStatus(env));
   }
   // Explicit test-run action; never bypasses the OFF switch.
@@ -66,12 +77,19 @@ export async function runAutomation(env,execute,{manual=false}={}){
   try{origin=new URL(env.AUTO_PUBLIC_ORIGIN || env.RAKUTEN_SITE_ORIGIN).origin;if(!origin.startsWith('https://'))throw Error();}catch{return {ok:false,reason:'AUTO_PUBLIC_ORIGIN_OR_SITE_ORIGIN_MISSING'};}
   if(!env.AI_ADMIN_TOKEN || !env.THREADS_ACCESS_TOKEN || !env.AI || !env.DB)return {ok:false,reason:'SECRETS_OR_BINDINGS_MISSING'};
   const jp=japanParts();
+  const extra=await env.DB.prepare('SELECT mix_enabled,trivia_share,trend_enabled FROM yodan_auto_extras WHERE id=1').first();
   const dailyTarget=Math.min(MAX_TARGET,settings.daily_target);
   const due=Math.ceil((Math.floor(jp.minutes/30)+1)*dailyTarget/48);
   if(!manual && due<=0)return {ok:true,reason:'NOT_DUE'};
   const todayCount=await env.DB.prepare("SELECT COUNT(*) AS cnt FROM yodan_auto_jobs WHERE slot>=? AND slot<? AND status IN ('claimed','article_ready','sending','published','uncertain')").bind(jp.date,jp.date+'~').first();
   if(Number(todayCount?.cnt||0)>=dailyTarget)return {ok:true,reason:'DAILY_LIMIT'};
   if(!manual && Number(todayCount?.cnt||0)>=due)return {ok:true,reason:'NOT_DUE'};
+  // Mix is opt-in: existing installations continue their original product posting.
+  const mixEnabled=extra?.mix_enabled===1;
+  const triviaTarget=mixEnabled?Math.round(dailyTarget*Math.max(0,Math.min(100,Number(extra.trivia_share)))/100):0;
+  const desiredTrivia=Math.round((manual?Math.min(dailyTarget,Number(todayCount?.cnt||0)+1):due)*triviaTarget/dailyTarget);
+  const triviaCount=triviaTarget>0?await env.DB.prepare("SELECT COUNT(*) AS cnt FROM yodan_auto_jobs WHERE slot>=? AND slot<? AND product_key LIKE 'TRIVIA:%' AND status IN ('claimed','article_ready','sending','published','uncertain')").bind(jp.date,jp.date+'~').first():null;
+  const isTrivia=triviaTarget>0 && Number(triviaCount?.cnt||0)<desiredTrivia;
   // One slot per cron window, reserved atomically before calling any external service.
   const slot=`${jp.date}:${String(Math.floor(jp.minutes/30)).padStart(2,'0')}`;
   const now=iso();
@@ -80,17 +98,39 @@ export async function runAutomation(env,execute,{manual=false}={}){
   let articleId=null, key=null;
   const mark=async (status,detail='')=>env.DB.prepare('UPDATE yodan_auto_jobs SET status=?,detail=?,product_key=?,article_id=?,updated_at=? WHERE slot=?').bind(status,detail,key,articleId,iso(),slot).run();
   try{
+    if(isTrivia){
+      // Use only hand-curated factual anchors; trends may prioritize a relevant anchor
+      // but cannot be treated as evidence for new claims about a breaking event.
+      const trends=extra?.trend_enabled===1?await latestTrends(env).catch(()=>null):null;
+      const topic=(trends&&!trends.stale?selectTrendKeyword(trends.topics,Math.floor(jp.minutes/30)):null);
+      const n=Number(triviaCount?.cnt||0);
+      const selected=chooseTriviaAnchor(jp.date,n,topic);
+      key=`TRIVIA:${selected.index}`;
+      articleId=crypto.randomUUID();
+      const text=await generateTriviaPost(env,selected);
+      const headers={'Content-Type':'application/json','X-Admin-Token':env.AI_ADMIN_TOKEN};
+      const ts=iso();
+      await env.DB.prepare('CREATE TABLE IF NOT EXISTS threads_posts (article_id TEXT PRIMARY KEY,body TEXT NOT NULL,status TEXT NOT NULL DEFAULT \'draft\',container_id TEXT,external_id TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,published_at TEXT)').run();
+      await env.DB.prepare("INSERT INTO threads_posts (article_id,body,status,created_at,updated_at) VALUES (?,?,'draft',?,?)").bind(articleId,text,ts,ts).run();
+      await mark('sending');
+      const posted=await internalJson(execute,origin,`/api/social/threads/${articleId}/publish`,{method:'POST',headers,body:JSON.stringify({attachImage:false})});
+      if(posted.status!=='published')throw new Error('UNCONFIRMED_POST');
+      await mark('published',String(posted.postId||''));
+      return {ok:true,status:'published',kind:'trivia',slot,articleId};
+    }
     // Rotate through categories; ranking is also consulted for sales popularity.
     const word=keywords[(jp.minutes/30+Number(jp.date.slice(-2)))%keywords.length|0];
-    const responses=await Promise.allSettled([
-      internalJson(execute,origin,'/api/picks/ranking'),
-      internalJson(execute,origin,`/api/search?keyword=${encodeURIComponent(word)}`)
-    ]);
+    // Search trends add a *candidate*, not a claim that the product itself is trending.
+    const snapshot=extra?.trend_enabled===1?await latestTrends(env).catch(()=>null):null;
+    const keyword=snapshot&&!snapshot.stale?selectTrendKeyword(snapshot.topics,Math.floor(jp.minutes/30)):null;
+    const calls=[internalJson(execute,origin,'/api/picks/ranking'),internalJson(execute,origin,`/api/search?keyword=${encodeURIComponent(word)}`)];
+    if(keyword)calls.push(internalJson(execute,origin,`/api/search?keyword=${encodeURIComponent(keyword)}`));
+    const responses=await Promise.allSettled(calls);
     const candidates=responses.flatMap(r=>r.status==='fulfilled'?(r.value.items||[]):[]).filter(validProduct);
     const recent=await env.DB.prepare("SELECT product_key FROM yodan_auto_products WHERE selected_at>=?").bind(new Date(Date.now()-30*86400000).toISOString()).all();
     const blocked=new Set((recent.results||[]).map(x=>x.product_key));
     // Prices and ranking are observable signals; external trend popularity is NOT verified.
-    const available=candidates.filter(p=>!blocked.has(productKey(p))).sort((a,b)=>selectScore(b)-selectScore(a));
+    const available=candidates.filter(p=>!blocked.has(productKey(p))).sort((a,b)=>selectScore(b)+trendCandidateScore(b,keyword)-selectScore(a)-trendCandidateScore(a,keyword));
     if(!available.length)throw new Error('NO_ELIGIBLE_PRODUCTS');
     const p=available[0];key=productKey(p);
     articleId=crypto.randomUUID();
@@ -125,7 +165,7 @@ export async function runAutomation(env,execute,{manual=false}={}){
     const posted=await internalJson(execute,origin,`/api/social/threads/${articleId}/publish`,{method:'POST',headers,body:JSON.stringify({attachImage:false})});
     if(posted.status!=='published')throw new Error('UNCONFIRMED_POST');
     await mark('published',String(posted.postId||''));
-    return {ok:true,status:'published',slot,articleId};
+    return {ok:true,status:'published',kind:'pr',slot,articleId};
   }catch(e){
     const code=e instanceof Error?e.message:'UNKNOWN';
     // Unknown outbound outcomes must never be retried automatically.
@@ -133,4 +173,35 @@ export async function runAutomation(env,execute,{manual=false}={}){
     console.error('v22 auto job failed',{code:code.slice(0,70)});
     return {ok:false,status:'failed',reason:code.slice(0,90),slot};
   }
+}
+
+export function chooseTriviaAnchor(day,count=0,topic=null){
+  const anchors=triviaAnchors();
+  const ordinal=Math.floor(Date.parse(`${day}T00:00:00Z`)/86400000);
+  const offset=((ordinal+count)%anchors.length+anchors.length)%anchors.length;
+  if(topic){
+    const chunks=topic.toLocaleLowerCase('ja-JP').split(/[\s　/・／、]+/).filter(x=>[...x].length>=2);
+    const match=anchors.findIndex(a=>chunks.some(x=>(a[0]+a[1]).toLocaleLowerCase('ja-JP').includes(x)));
+    if(match>=0 && count===0)return {index:match,title:anchors[match][0],anchor:anchors[match][1]};
+  }
+  return {index:offset,title:anchors[offset][0],anchor:anchors[offset][1]};
+}
+export async function generateTriviaPost(env,{title,anchor}){
+  // Do not rely on an AI model to invent factual trivia from an unverified search term.
+  let prose='';
+  if(env.AI?.run){
+    try {
+      const response=await env.AI.run('@cf/google/gemma-4-26b-a4b-it',{
+        messages:[{role:'system',content:'「余談商店」の店主として、軽い皮肉や言葉遊びを添えたThreads向けの日本語投稿を執筆。提示された事実以外に具体的な科学・歴史・事件・数字・人名・効果・引用を追加しない。広告・商品紹介・PR表記・URL・ハッシュタグを一切含めない。必ず検証用の事実文を一字一句変えずに含める。全体100〜350文字。出力は投稿文のみ。'},
+          {role:'user',content:`見出し: ${title}\n事実文（改変禁止）: ${anchor}\n挨拶に「余談商店」を含め、意外な余談として書いてください。`}],
+        max_completion_tokens:500,temperature:0.55,chat_template_kwargs:{enable_thinking:false}
+      });
+      prose=String(response?.response||response?.result?.response||'').trim();
+    }catch{/* fall through to factual template */}
+  }
+  if(!prose.includes(anchor) || !prose.includes('余談商店') || [...prose].length<100 || [...prose].length>400 || /https?:\/\/|【PR】|アフィリエイト|広告|#PR/i.test(prose)){
+    prose=`いらっしゃいませ、余談商店です。\n\n今日は「${title}」の話をひとつ。\n\n${anchor}\n\n普段は見過ごしてしまうものほど、少し違う角度から眺めると面白い。そんな余談も、ときにはお土産代わりに。\n\nそれでは、またふらっとお立ち寄りください。`;
+  }
+  if([...prose].length>500 || !prose.includes(anchor) || /https?:\/\/|【PR】|アフィリエイト|広告/i.test(prose))throw new Error('INVALID_TRIVIA_POST');
+  return prose;
 }

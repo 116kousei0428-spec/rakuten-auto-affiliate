@@ -164,7 +164,20 @@ button.secondary,.shelf-back{background:#eee0c0!important;color:#593e25!importan
     <div class="panel-heading"><span class="section-icon">⚙️</span><div><small class="section-kicker">AUTOMATIC THREADS</small><h2>Threads自動投稿</h2></div></div>
     <p class="help">初期状態は停止。公開ドメイン設定とAPI接続を確認してから有効にしてください。日本時間の30分単位で分散実行します。画像は個別の転載許可を確認できる場合だけ使用し、現時点の自動投稿はテキストのみです。</p>
     <div class="settings"><label for="auto-target">1日の目標投稿数</label><input type="number" min="1" max="48" value="20" id="auto-target" style="max-width:150px"><label for="auto-enabled">自動投稿</label><label class="case-option" style="margin:0"><input type="checkbox" id="auto-enabled"><span class="case-switch"></span><span>有効にする</span></label></div>
+    <div class="settings" style="margin-top:14px;gap:12px;flex-wrap:wrap">
+      <label class="auto-option"><input type="checkbox" id="auto-mix"> PRと純粋な雑学を混ぜて投稿する</label>
+      <label for="auto-trivia-share">雑学割合（%）</label><input type="number" min="0" max="100" value="50" id="auto-trivia-share" style="max-width:100px">
+      <label class="auto-option"><input type="checkbox" id="auto-trend"> Google Trendsを商品・雑学の選定に活用する</label>
+    </div>
+    <p class="help" id="auto-mix-summary">20件／日ならPR10件＋雑学10件。新機能は明示的にONにするまで既存のPR投稿を維持します。</p>
     <div class="actions"><button id="auto-refresh" class="secondary" type="button">状態を確認</button><button id="auto-save" type="button">設定を保存</button><button id="auto-run" class="secondary" type="button">今すぐ1件テスト投稿（公開）</button></div>
+    <div class="mini-panel" style="margin-top:14px">
+      <h3 style="font-size:16px;margin:0 0 8px">国内の検索トレンド（参考情報）</h3>
+      <p class="help">Google Trendsの日本向けRSSで急上昇検索語を取得します。SNSでの流行や商品売上の裏付けではありません。関連商品が見つからない場合は従来の楽天選定を維持します。</p>
+      <div class="actions"><button id="trend-status-refresh" class="secondary small" type="button">保存済み情報を見る</button><button id="trend-fetch" class="secondary small" type="button">トレンドを今すぐ取得</button></div>
+      <p id="trend-status" class="help" role="status">取得状況を確認していません。</p>
+      <div id="trend-topics" class="draft-list"></div>
+    </div>
     <p id="auto-status" class="help" role="status">設定を取得していません。</p><div id="auto-history" class="draft-list"></div>
   </section>
   <section class="panel" id="threads-section">
@@ -214,22 +227,42 @@ button.secondary,.shelf-back{background:#eee0c0!important;color:#593e25!importan
 const autoStatus=$('#auto-status'),autoHistory=$('#auto-history');
 async function loadAutoSettings(){
   try{const r=await fetch('/api/automation',{credentials:'same-origin'});const d=await r.json();if(!r.ok)throw new Error(d.error||'設定取得エラー');
-    $('#auto-enabled').checked=d.enabled;$('#auto-target').value=d.dailyTarget;
-    autoStatus.textContent=`${d.enabled?'有効':'停止'}｜本日成功 ${d.successToday}件／目標 ${d.dailyTarget}件｜日本時間 ${d.today}${d.automationReady?'':'｜自動投稿の接続設定を確認してください'}`;
-    autoHistory.replaceChildren();for(const log of d.logs||[]){const e=document.createElement('p');e.className='help';e.textContent=`${log.slot} ${log.status} ${log.article_id||''} ${log.detail||''}`;autoHistory.appendChild(e);}
+    $('#auto-enabled').checked=d.enabled;$('#auto-target').value=d.dailyTarget;$('#auto-mix').checked=Boolean(d.mixEnabled);$('#auto-trivia-share').value=d.triviaShare??50;$('#auto-trend').checked=Boolean(d.trendEnabled);updateAutoMixSummary();
+    autoStatus.textContent=`${d.enabled?'有効':'停止'}｜本日成功 ${d.successToday}件／目標 ${d.dailyTarget}件｜日本時間 ${d.today}${d.mixEnabled?'｜PR・雑学の混合ON':''}${d.trendEnabled?'｜トレンド照合ON':''}${d.automationReady?'':'｜自動投稿の接続設定を確認してください'}`;
+    autoHistory.replaceChildren();for(const log of d.logs||[]){const e=document.createElement('p');e.className='help';e.textContent=`${log.slot} ${String(log.product_key||'').startsWith('TRIVIA:')?'雑学':'PR'} ${log.status} ${log.article_id||''} ${log.detail||''}`;autoHistory.appendChild(e);}
   }catch(e){autoStatus.textContent=e.message;}
 }
-$('#auto-refresh').onclick=loadAutoSettings;
-$('#auto-save').onclick=async()=>{const target=Number($('#auto-target').value),enabled=$('#auto-enabled').checked;
-  if(!Number.isInteger(target)||target<1||target>48){autoStatus.textContent='投稿数は1〜48件で指定。';return;}
-  try{const r=await fetch('/api/automation',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled,dailyTarget:target})});const d=await r.json();if(!r.ok)throw new Error(d.error);await loadAutoSettings();}
+function updateAutoMixSummary(){const goal=Number($('#auto-target').value)||20,share=Number($('#auto-trivia-share').value)||0,mix=$('#auto-mix').checked;
+  const count=mix?Math.round(goal*share/100):0;
+  $('#auto-mix-summary').textContent=`投稿内訳：PR ${goal-count}件＋純粋な雑学 ${count}件（1日の目標${goal}件）。${mix?'':'混合はOFFのため、今は全てPR投稿です。'}`;
+}
+for(const id of ['auto-target','auto-mix','auto-trivia-share'])$('#'+id).addEventListener('change',updateAutoMixSummary);
+async function loadTrends(){
+  const status=$('#trend-status'),target=$('#trend-topics');
+  try{const r=await fetch('/api/trends',{credentials:'same-origin',cache:'no-store'}),d=await r.json();if(!r.ok)throw Error(d.error||'取得失敗');
+    const topics=Array.isArray(d.topics)?d.topics:[];
+    status.textContent=d.updatedAt?`Google Trends JP 最終取得 ${new Date(d.updatedAt).toLocaleString('ja-JP')} ／ ${topics.length}件${d.stale?'（古いデータのため自動選定に使いません）':''}`:'トレンド情報がありません。「トレンドを今すぐ取得」を押してください。';
+    target.replaceChildren();
+    for(const entry of (d.shopping||[]).slice(0,10)){const p=document.createElement('p');p.className='help';p.textContent=`・${entry.term}（${entry.signal==='approx_rising'?'直近サンプルで検索量の概数が上昇':entry.signal==='new_in_sample'?'前回サンプルには未出現':'検索の急上昇候補'}）`;target.appendChild(p);}
+    if(!target.children.length){const p=document.createElement('p');p.className='help';p.textContent='商品に結び付けられる検索語は現在ありません。';target.appendChild(p);}
+  }catch(e){status.textContent=e.message;}
+}
+$('#trend-status-refresh').onclick=loadTrends;
+$('#trend-fetch').onclick=async()=>{const msg=$('#trend-status');msg.textContent='国内検索トレンドを取得中…';
+  try{const r=await fetch('/api/trends',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}),d=await r.json();if(!r.ok)throw Error(d.refresh?.reason||d.error||'取得失敗');await loadTrends();}
+  catch(e){msg.textContent='更新失敗：'+e.message+'。既存の投稿には影響しません。';}
+};
+$('#auto-refresh').onclick=async()=>{await loadAutoSettings();await loadTrends();};
+$('#auto-save').onclick=async()=>{const target=Number($('#auto-target').value),enabled=$('#auto-enabled').checked,mixEnabled=$('#auto-mix').checked,trendEnabled=$('#auto-trend').checked,triviaShare=Number($('#auto-trivia-share').value);
+  if(!Number.isInteger(target)||target<1||target>48||!Number.isInteger(triviaShare)||triviaShare<0||triviaShare>100){autoStatus.textContent='投稿数は1〜48件、雑学割合は0〜100%で指定。';return;}
+  try{const r=await fetch('/api/automation',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled,dailyTarget:target,mixEnabled,trendEnabled,triviaShare})});const d=await r.json();if(!r.ok)throw new Error(d.error);await loadAutoSettings();}
   catch(e){autoStatus.textContent=e.message;}
 };
-$('#auto-run').onclick=async()=>{if(!confirm('Threadsへ商品紹介を実際に1件投稿します。よろしいですか？'))return;
+$('#auto-run').onclick=async()=>{if(!confirm('Threadsへ1件、商品PRまたは純粋な雑学を実際に公開します。よろしいですか？'))return;
   autoStatus.textContent='実行中…';try{const r=await fetch('/api/automation',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'runOnce'})});const d=await r.json();autoStatus.textContent=d.ok?`投稿完了：${d.articleId||d.reason}`:`投稿未完了：${d.reason||'エラー'}`;}
   catch(e){autoStatus.textContent=e.message;}await loadAutoSettings();
 };
-loadAutoSettings();
+loadAutoSettings();loadTrends();
 const form = $('#search-form');
 const status = $('#status');
 const results = $('#results');

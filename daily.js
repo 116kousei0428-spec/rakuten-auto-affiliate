@@ -81,3 +81,6 @@ export async function generateDaily(env,{date=dateJst()}={}){
   }
 }
 export const currentJstDay=dateJst;
+
+// Export read-only editorial anchors for non-promotional Threads posts.
+export const triviaAnchors=()=>topics.map(row=>[...row]);
