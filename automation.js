@@ -22,7 +22,7 @@ export async function automationStatus(env){
   const today=japanParts().date;
   const logs=await env.DB.prepare('SELECT slot,status,article_id,detail,updated_at FROM yodan_auto_jobs ORDER BY created_at DESC LIMIT 50').all();
   const todayJobs=(logs.results||[]).filter(x=>x.slot.startsWith(today));
-  return {enabled:settings.enabled===1,dailyTarget:settings.daily_target,updatedAt:settings.updated_at,today,successToday:todayJobs.filter(x=>x.status==='published').length,logs:logs.results||[],imageAutoAttach:false};
+  return {enabled:settings.enabled===1,dailyTarget:settings.daily_target,updatedAt:settings.updated_at,today,successToday:todayJobs.filter(x=>x.status==='published').length,logs:logs.results||[],imageAutoAttach:false,configuredOrigin:Boolean(env.AUTO_PUBLIC_ORIGIN||env.RAKUTEN_SITE_ORIGIN),automationReady:Boolean((env.AUTO_PUBLIC_ORIGIN||env.RAKUTEN_SITE_ORIGIN)&&env.AI_ADMIN_TOKEN&&env.THREADS_ACCESS_TOKEN&&env.AI&&env.DB)};
 }
 export async function automationApi(request,env,execute){
   if(request.method==='GET')return Response.json(await automationStatus(env));
@@ -63,13 +63,13 @@ export async function runAutomation(env,execute,{manual=false}={}){
   if(settings.enabled!==1)return {ok:false,reason:'DISABLED'};
   // A verified public origin must be configured. Never guess a deployed hostname.
   let origin;
-  try{origin=new URL(env.AUTO_PUBLIC_ORIGIN).origin;if(!origin.startsWith('https://'))throw Error();}catch{return {ok:false,reason:'AUTO_PUBLIC_ORIGIN_MISSING'};}
+  try{origin=new URL(env.AUTO_PUBLIC_ORIGIN || env.RAKUTEN_SITE_ORIGIN).origin;if(!origin.startsWith('https://'))throw Error();}catch{return {ok:false,reason:'AUTO_PUBLIC_ORIGIN_OR_SITE_ORIGIN_MISSING'};}
   if(!env.AI_ADMIN_TOKEN || !env.THREADS_ACCESS_TOKEN || !env.AI || !env.DB)return {ok:false,reason:'SECRETS_OR_BINDINGS_MISSING'};
   const jp=japanParts();
   const dailyTarget=Math.min(MAX_TARGET,settings.daily_target);
   const due=Math.ceil((Math.floor(jp.minutes/30)+1)*dailyTarget/48);
   if(!manual && due<=0)return {ok:true,reason:'NOT_DUE'};
-  const todayCount=await env.DB.prepare("SELECT COUNT(*) AS cnt FROM yodan_auto_jobs WHERE slot>=? AND slot<? AND status IN ('claimed','article_ready','sending','published','uncertain','failed')").bind(jp.date,jp.date+'~').first();
+  const todayCount=await env.DB.prepare("SELECT COUNT(*) AS cnt FROM yodan_auto_jobs WHERE slot>=? AND slot<? AND status IN ('claimed','article_ready','sending','published','uncertain')").bind(jp.date,jp.date+'~').first();
   if(Number(todayCount?.cnt||0)>=dailyTarget)return {ok:true,reason:'DAILY_LIMIT'};
   if(!manual && Number(todayCount?.cnt||0)>=due)return {ok:true,reason:'NOT_DUE'};
   // One slot per cron window, reserved atomically before calling any external service.

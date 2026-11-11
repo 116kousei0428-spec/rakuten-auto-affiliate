@@ -19,16 +19,16 @@ test('hero: webp exists, in storefront, and is never cropped by CSS',async()=>{
  assert.match(html,/header\.hero \.hero-scene\{[^}]*object-fit:contain!important/);
 });
 
-test('version: health and public/private response metadata identify v36',async()=>{
+test('version: health and public/private response metadata identify v31',async()=>{
  const health=await (await worker.fetch(new Request('https://site.test/api/health'),env)).json();
- assert.equal(health.release,'v36');
+ assert.equal(health.release,'v35');
  const storefront=await worker.fetch(new Request('https://site.test/'),env);
- assert.equal(storefront.headers.get('X-Rakuten-UI-Version'),'v36');
- assert.match(source,/'X-Rakuten-UI-Version':'v36'/);
+ assert.equal(storefront.headers.get('X-Rakuten-UI-Version'),'v35');
+ assert.match(source,/'X-Rakuten-UI-Version':'v35'/);
 });
 
 test('price cache: bypass old result namespaces while retaining rate-limit cooldown',()=>{
- assert.match(source,/\/api\/__v36_ranking_top30/);
+ assert.match(source,/\/api\/__v36_ranking_top40_price/);
  assert.match(source,/\/api\/__v29_result_price\?/);
  assert.doesNotMatch(source,/\/api\/__v18_ranking`/);
  assert.doesNotMatch(source,/\/api\/__v9_result\?/);

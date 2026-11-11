@@ -20,7 +20,7 @@ header.hero{overflow:hidden;position:relative;isolation:isolate;background:linea
 h1,h2,h3{overflow-wrap:anywhere}h2{font-family:'Yu Mincho','Hiragino Mincho ProN',serif;font-size:clamp(21px,2.5vw,26px);font-weight:800;letter-spacing:.045em;color:var(--deep);margin:0 0 14px}h3{color:var(--deep)}p{line-height:1.8}.panel{position:relative;background:var(--paper);border:1px solid var(--border);border-radius:24px;padding:26px 30px;margin:20px 0;box-shadow:var(--shadow)}.panel-heading{display:flex;align-items:center;gap:12px;margin:0 0 8px}.section-icon{display:grid;place-items:center;flex:none;font-size:24px;background:#f2ebdc;border:1px solid #eadfc9;border-radius:15px;width:50px;height:50px}.panel-heading h2{margin:0}.section-kicker{color:#b3835d;font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;display:block;margin-bottom:4px}.help{color:#7d8175;font-size:12px;line-height:1.8;margin:10px 0}.subtle{font-size:12px;color:var(--muted)}.settings{display:grid;grid-template-columns:200px minmax(0,1fr);align-items:center;gap:13px 18px;max-width:790px;margin-top:18px}.settings label{font-size:13px;font-weight:700}.settings>span.help{font-weight:700}.status-line,#status,#ai-status,#db-status,#picks-status,#social-status{font-size:13px;overflow-wrap:anywhere}#status,#ai-status{color:var(--forest);font-weight:700;white-space:pre-wrap}
 form{display:flex;align-items:center;gap:12px}form input{flex:1;min-height:49px}form button{min-height:48px;min-width:110px}.search-panel{background:linear-gradient(116deg,#fffdfa 25%,#f4f2e7)}
 .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:15px}.secondary{background:#ecf0e6;color:var(--deep);border-color:#d9e3d2;box-shadow:none}.secondary:hover:not(:disabled){background:#dce7d5}.small{padding:7px 14px;font-size:12px}.publish{background:var(--forest)}.new-mark{font:700 10px/1.5 system-ui,sans-serif;background:#fbefdf;color:#a46e3a;padding:4px 9px;border-radius:999px;vertical-align:middle;letter-spacing:.06em}.auto-option{display:flex;align-items:center;gap:9px;margin-top:15px;font-size:13px}.auto-option input{height:17px;width:17px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px;margin:18px 0 25px}.item{min-width:0;background:var(--paper);border:1px solid var(--border);border-radius:22px;padding:15px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow);transition:transform .15s,box-shadow .15s}.item:hover{transform:translateY(-3px);box-shadow:0 16px 29px #50473519}.item img{display:block;width:100%;height:185px;object-fit:contain;background:#faf8f0;border-radius:15px;padding:8px}.item h2{font:700 14px/1.7 'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;letter-spacing:0;margin:0;color:var(--ink);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.price{color:#a2643b;font-size:21px;font-weight:900}.shop{color:var(--muted);font-size:12px}.item a{border:1px solid #d8dfd2;border-radius:999px;background:#eef3eb;color:var(--deep);text-decoration:none;text-align:center;padding:10px;font-size:13px;margin-top:auto}.item .generate{width:100%}
-.picks-topics{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:12px;margin-top:16px}.pick-topic{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:8px;background:#fcfbf6;color:var(--ink);border:1px solid var(--border);border-radius:17px;padding:18px;text-align:left;min-height:127px;box-shadow:none}.pick-topic strong{font-size:15px}.pick-topic span{font-size:12px;color:var(--muted);line-height:1.65}.pick-topic:hover:not(:disabled){background:#f2f6ed;border-color:#9fae99;box-shadow:none}.pick-rank{background:#f5e9d8;color:#985d38;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:800;align-self:flex-start}
+.picks-topics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:16px}.pick-topic{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:8px;background:#fcfbf6;color:var(--ink);border:1px solid var(--border);border-radius:17px;padding:18px;text-align:left;min-height:127px;box-shadow:none}.pick-topic strong{font-size:15px}.pick-topic span{font-size:12px;color:var(--muted);line-height:1.65}.pick-topic:hover:not(:disabled){background:#f2f6ed;border-color:#9fae99;box-shadow:none}.pick-rank{background:#f5e9d8;color:#985d38;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:800;align-self:flex-start}
 #draft-text{display:block;min-height:310px;resize:vertical;font-size:14px}#social-text{background:#fffdf7;min-height:220px}.draft-row{display:flex;align-items:center;gap:10px;border-bottom:1px dashed #e5dbca;padding:14px 0;flex-wrap:wrap}.draft-row span{flex:1 1 260px;font-size:13px;line-height:1.6;overflow-wrap:anywhere}.pub-link{font-size:12px;overflow-wrap:anywhere}
 .case-option{display:inline-flex;align-items:center;gap:10px;border:1px solid #d9dfd1;border-radius:16px;background:#f6f9f1;padding:13px 18px;margin-top:12px;cursor:pointer;user-select:none}.case-option input{position:absolute;opacity:0;width:1px;height:1px}.case-switch{width:44px;height:25px;border-radius:99px;background:#b4bbae;position:relative;flex-shrink:0;transition:background .15s}.case-switch:before{content:'';position:absolute;top:3px;left:3px;width:19px;height:19px;background:white;border-radius:50%;transition:transform .15s;box-shadow:0 2px 4px #0002}.case-option input:checked+.case-switch{background:var(--forest)}.case-option input:checked+.case-switch:before{transform:translateX(19px)}.case-option input:focus-visible+.case-switch{outline:3px solid #e6b178;outline-offset:3px}.case-option small{display:block;font-size:12px;color:var(--muted);margin-top:3px}.media-attach{background:#f8f9f3;border:1px dashed #c9d7bd;border-radius:18px;padding:20px;margin:18px 0}.media-attach h3{font-size:16px;margin:0 0 10px}.media-attach>label{font-size:13px}.media-attach img{display:block;max-width:250px;max-height:250px;object-fit:contain;background:white;border:1px solid #e0ddcf;border-radius:14px;margin:12px 0}
 .mini-panel{background:#f3f6ee;border:1px solid #dfe6d7;border-radius:17px;padding:18px;margin-top:18px}.mini-panel h3{margin:0 0 8px;font-size:15px}.footer{border-top:1px solid #e9dfcd;margin-top:42px;padding:24px 0;color:var(--muted);font-size:12px;line-height:1.9}.footer-brand{font-weight:800;color:var(--forest);font-size:14px}.footer a{font-size:12px}
@@ -97,7 +97,9 @@ button.secondary,.shelf-back{background:#eee0c0!important;color:#593e25!importan
 @media(max-width:700px){main{padding:0 10px 24px!important}.topbar{margin:0 -10px 8px}.topbar-links{gap:4px}.topbar-links a{font-size:10px!important;padding:5px!important}header.hero{min-height:clamp(190px,43vw,310px)!important;border-width:5px!important;background-position:center top!important}.quick-nav{gap:7px!important}.quick-nav a{font-size:11px!important;padding:7px 10px!important;min-height:36px}.daily-feature{grid-template-columns:1fr;padding:9px;gap:8px}.daily-feature-copy{min-height:140px;padding:15px}.daily-paper{padding:18px}.shelf-grid{padding:7px!important;gap:14px 8px!important}.panel{padding:16px!important}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
 
-.ranking-pagination{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin:12px 0 4px}.ranking-pagination button{padding:8px 14px;font-size:12px}.ranking-page-label{font-weight:750;color:var(--deep);font-size:13px}.pick-recommendation{background:#e7efe1;color:#35543c;border:1px solid #c8d8bc;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:800;align-self:flex-start;max-width:100%;overflow-wrap:anywhere;line-height:1.5}
+/* Desktop: a four-column shelf of 12 real products; on narrow screens keep two columns. */
+@media(min-width:760px){#pick-results.shelf-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:759px){#pick-results.shelf-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body><main>
@@ -127,19 +129,14 @@ button.secondary,.shelf-back{background:#eee0c0!important;color:#593e25!importan
   </section>
   <section class="panel" id="picks-section">
     <div class="panel-heading"><span class="section-icon" aria-hidden="true">🌿</span><div><small class="section-kicker">THE SHOPKEEPER'S PICKS</small><h2>人気のもの・商店おすすめ <span class="new-mark">PICK UP</span></h2></div></div>
-    <p class="help">人気商品は楽天市場の公式ランキングAPIから取得します。商店おすすめは、毎日の楽天ランキングから選んだ候補と編集上の注目候補を使い、商品検索APIから実際の品物を表示します。売上順位や将来の人気を保証するものではありません。<a href="https://corp.rakuten.co.jp/news/press/2026/1028_01.html" target="_blank" rel="noopener noreferrer">楽天の発表</a>。</p>
+    <p class="help">人気商品は楽天市場の公式ランキングAPIから取得します。商店おすすめは独自の編集候補で、楽天の2026年冬トレンド予測に掲載された商品群と編集注目候補を紹介します。売上順位や将来の人気を保証するものではありません。<a href="https://corp.rakuten.co.jp/news/press/2026/1028_01.html" target="_blank" rel="noopener noreferrer">楽天の発表</a>。</p>
     <div class="actions" style="margin-top:12px">
       <button id="load-ranking" type="button">楽天ランキングを見る</button>
       <button id="show-editor-picks" class="secondary" type="button">商店おすすめを見る</button>
       <button id="refresh-editor-picks" class="secondary" type="button">別の棚を見る</button>
     </div>
     <div class="actions"><button id="shelf-back" class="shelf-back" type="button" hidden>← 前の棚に戻る</button><button id="topic-back" class="shelf-back" type="button" hidden>← この棚の品揃えに戻る</button></div>
-    <p id="picks-status" class="help" role="status">楽天ランキング、または商店おすすめの棚をご覧ください。</p>
-    <div id="ranking-pagination" class="ranking-pagination" hidden aria-label="楽天ランキングの順位切り替え">
-      <button id="ranking-prev" type="button" class="secondary" disabled>← 前の10位</button>
-      <span id="ranking-page-label" class="ranking-page-label" role="status" aria-live="polite"></span>
-      <button id="ranking-next" type="button" class="secondary">次の10位 →</button>
-    </div>
+    <p id="picks-status" class="help" role="status">まずはランキングを見るか、注目テーマを選んでください。</p>
     <p id="daily-picks-meta" class="help" role="status">おすすめ棚の更新状況を確認中…</p>
     <div class="shelf-sign" aria-hidden="true">❧ 店主のおすすめ棚 <small>のぞくだけでも、ごゆっくり</small></div>
     <div id="editor-picks" class="picks-topics" hidden></div>
@@ -213,10 +210,6 @@ const renderProductCards = (target, items, { ranked = false } = {}) => {
       const rank = document.createElement('span'); rank.className = 'pick-rank';
       rank.textContent = `楽天ランキング ${item.rank}位`; article.append(rank);
     }
-    if (typeof item.recommendationTopic === 'string' && item.recommendationTopic) {
-      const recommendation = document.createElement('span'); recommendation.className = 'pick-recommendation';
-      recommendation.textContent = `商店おすすめ：${item.recommendationTopic}`; article.append(recommendation);
-    }
     const imgUrl = safe(item.image);
     if (imgUrl) { const img = document.createElement('img'); img.src = imgUrl; img.alt = ''; img.loading = 'lazy'; article.append(img); }
     const h2 = document.createElement('h2'); h2.textContent = item.name;
@@ -247,89 +240,50 @@ form.addEventListener('submit', async (e) => {
   if (!keyword) return setStatus('キーワードを入力してください。');
   await searchProducts(keyword, results, status);
 });
-// v36: Product cards are the main view for every recommended shelf.
-// A generation counter prevents a slow API response from replacing a newly selected shelf.
-let picksViewRequest = 0;
-let picksViewMode = 'ranking';
-const recommendedShelfCache = new Map();
-const rankingPagination = $('#ranking-pagination');
-const rankingPageLabel = $('#ranking-page-label');
-const rankingPrev = $('#ranking-prev');
-const rankingNext = $('#ranking-next');
-let rankingItems = [];
-let rankingPage = 0;
-let rankingUpdatedAt = '';
-const renderRankingPage = () => {
-  const firstRank = rankingPage * 10 + 1;
-  const lastRank = Math.min(30, firstRank + 9);
-  const visible = rankingItems.filter(item => item.rank >= firstRank && item.rank <= lastRank);
-  renderProductCards(pickResults, visible, { ranked: true });
-  rankingPageLabel.textContent = `${firstRank}〜${lastRank}位（掲載${visible.length}件）`;
-  rankingPrev.disabled = rankingPage === 0;
-  rankingNext.disabled = !rankingItems.some(item => item.rank > lastRank && item.rank <= 30);
-  picksStatus.textContent = visible.length
-    ? `楽天ランキング ${firstRank}〜${lastRank}位のうち、APIが返した${visible.length}件を表示${rankingUpdatedAt}。`
-    : `楽天ランキング ${firstRank}〜${lastRank}位は、現在表示できる商品がありません。`;
+let recommendationRequestId=0;
+const loadRecommendedProducts=async(requestId,page)=>{
+  try{
+    const response=await fetch('/api/picks/ranking');
+    if(!response.ok) return; // Keep the editorial themes if ranking cannot be fetched.
+    const data=await response.json();
+    if(requestId!==recommendationRequestId)return;
+    const products=Array.isArray(data.items)?data.items.filter(x=>x&&x.name&&x.url&&Number.isInteger(x.rank)):[];
+    if(!products.length)return;
+    // Observed Rakuten ranking position is a verified popularity signal, NOT an SNS trend claim.
+    const ordered=products.slice().sort((a,b)=>a.rank-b.rank);
+    const shelf=ordered.slice(page*PICKS_PER_SHELF,(page+1)*PICKS_PER_SHELF);
+    if(!shelf.length)return;
+    editorPicks.hidden=true;
+    renderProductCards(pickResults,shelf);
+    picksStatus.textContent=`商店おすすめ ${page+1}棚：楽天売れ筋ランキングを参考に${shelf.length}商品を表示（SNSでの流行は未検証）。`;
+    pickAttribution.hidden=false;
+  }catch{/* Keep the existing editorial topics as a fallback. */}
 };
-rankingPrev.addEventListener('click', () => { if (rankingPage > 0) { rankingPage--; renderRankingPage(); } });
-rankingNext.addEventListener('click', () => {
-  const endRank = (rankingPage + 1) * 10;
-  if (rankingPage < 2 && rankingItems.some(item => item.rank > endRank && item.rank <= 30)) {
-    rankingPage++; renderRankingPage();
+const showEditorPickTopics = () => {
+  pickResults.replaceChildren(); pickAttribution.hidden = true;
+  editorPicks.hidden = false;
+  $('#topic-back').hidden=true;
+  editorPicks.replaceChildren();
+  picksStatus.textContent = `おすすめ ${pickPage+1} / ${PICK_SHELF_COUNT}棚（最大12テーマ）。楽天の売れ筋・年代別ランキングを基にした候補を表示しています。選択すると実際の商品が見られます。`;
+  dailyPicksMetaEl.textContent=dailyPickExplanation();
+  const requestId=++recommendationRequestId;
+  void loadRecommendedProducts(requestId,pickPage);
+  for (const topic of rotatingPickTopics()) {
+    const button = document.createElement('button');button.type='button';button.className='pick-topic';
+    const name=document.createElement('strong');name.textContent=topic.name;
+    const reason=document.createElement('span');reason.textContent=`【${topic.basis}】${topic.reason}`;
+    const action=document.createElement('span');action.textContent='クリックで楽天の商品候補を表示';
+    button.append(name,reason,action);
+    button.addEventListener('click',async()=>{
+      // 編集候補を元に、実際の楽天商品データを検索する。価格や在庫は捏造しない。
+      editorPicks.hidden=true;
+      $('#topic-back').hidden=false;
+      await searchProducts(topic.keyword,pickResults,picksStatus);
+    });
+    editorPicks.append(button);
   }
-});
-const fetchOneRecommendedProduct = async topic => {
-  try {
-    const response = await fetch(`/api/search?keyword=${encodeURIComponent(topic.keyword)}`);
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) return { error: typeof data.error === 'string' ? data.error : `楽天API HTTP ${response.status}`, limited: response.status === 503 };
-    const product = (Array.isArray(data.items) ? data.items : []).find(item => item && item.name && safe(item.url));
-    if (!product) return { missing: true };
-    return { item: { ...product, recommendationTopic: topic.name } };
-  } catch { return { error: '商品情報を取得できませんでした。' }; }
 };
-const showEditorPickTopics = async () => {
-  const requestId = ++picksViewRequest;
-  picksViewMode = 'recommended';
-  rankingPagination.hidden = true;
-  pickAttribution.hidden = true;
-  editorPicks.hidden = true;
-  $('#topic-back').hidden = true;
-  pickResults.replaceChildren();
-  const topics = rotatingPickTopics();
-  const cacheKey = `${dailyPickMeta?.day || 'editorial'}:${Math.floor(Date.now()/PICK_ROTATION_MS)}:${pickPage}`;
-  const cached = recommendedShelfCache.get(cacheKey);
-  dailyPicksMetaEl.textContent = dailyPickExplanation();
-  picksStatus.textContent = `商店おすすめ ${pickPage+1} / ${PICK_SHELF_COUNT}棚の商品を読み込み中…`;
-  let collected = [];
-  let errors = [];
-  let missing = 0;
-  if (cached && Date.now() - cached.savedAt < 10 * 60 * 1000) {
-    collected = cached.items;
-    missing = cached.missing;
-  } else {
-    // Never fire all four Rakuten searches at once; limit concurrency to two.
-    for (let i = 0; i < topics.length; i += 2) {
-      const results = await Promise.all(topics.slice(i, i + 2).map(fetchOneRecommendedProduct));
-      if (requestId !== picksViewRequest) return;
-      for (const result of results) {
-        if (result.item) collected.push(result.item);
-        else if (result.error) errors.push(result.error);
-        else missing++;
-      }
-      // Avoid further API requests when the upstream reports a rate limit.
-      if (results.some(result => result.limited)) break;
-    }
-    if (!errors.length) recommendedShelfCache.set(cacheKey, { savedAt: Date.now(), items: collected, missing });
-  }
-  if (requestId !== picksViewRequest) return;
-  renderProductCards(pickResults, collected);
-  const count = collected.length;
-  picksStatus.textContent = `商店おすすめ ${pickPage+1} / ${PICK_SHELF_COUNT}棚：${count}商品を表示。`;
-  if (missing) picksStatus.textContent += ` 該当商品がない候補：${missing}件。`;
-  if (errors.length) picksStatus.textContent += ` 一部を取得できませんでした：${errors[0]}`;
-  if (!count && !errors.length) picksStatus.textContent += ' 現在表示できる商品はありません。';
-};// v32: Only a completed, verified daily snapshot replaces the editorial fallback catalog.
+// v32: Only a completed, verified daily snapshot replaces the editorial fallback catalog.
 let activePickTopics=CURATED_PICK_TOPICS;
 const dailyPicksMetaEl=document.getElementById('daily-picks-meta');
 let dailyPickMeta=null;
@@ -350,13 +304,12 @@ const loadDailyPickTopics=async()=>{
       dailyPickMeta={day:data.day,current:data.current};
       dailyPicksMetaEl.textContent=dailyPickExplanation();
       pickPage=0;shelfTrail.length=0;
-      recommendedShelfCache.clear();
-      if(picksViewMode==='recommended'){void showEditorPickTopics();updateShelfBack();}
+      if(!editorPicks.hidden){showEditorPickTopics();updateShelfBack();}
     }
   }catch{/* Offline or D1 outage: keep the most recent visible shelf. */}
 };
 const PICK_ROTATION_MS=3*60*60*1000;
-const PICKS_PER_SHELF=4;
+const PICKS_PER_SHELF=12;
 const PICK_SHELF_COUNT=Math.ceil(CURATED_PICK_TOPICS.length/PICKS_PER_SHELF);
 let pickPage=0;
 const shelfTrail=[];
@@ -367,62 +320,33 @@ const rotatingPickTopics=()=>{
   return list.slice(start,start+PICKS_PER_SHELF).map(v=>v.topic);
 };
 const shelfBack=$('#shelf-back');
-const updateShelfBack=()=>{shelfBack.hidden=shelfTrail.length===0 || picksViewMode !== 'recommended';};
-$('#topic-back').addEventListener('click',()=>{void showEditorPickTopics();$('#picks-section').scrollIntoView({block:'start'});});
-editorButton.addEventListener('click',()=>{shelfTrail.length=0;pickPage=0;void showEditorPickTopics();updateShelfBack();});
-$('#refresh-editor-picks').addEventListener('click',()=>{
-  if(pickPage+1>=PICK_SHELF_COUNT)shelfTrail.length=0;
-  else shelfTrail.push(pickPage);
-  pickPage=(pickPage+1)%PICK_SHELF_COUNT;
-  void showEditorPickTopics();updateShelfBack();
-});
-shelfBack.addEventListener('click',()=>{
-  if(!shelfTrail.length || picksViewMode!=='recommended')return;
-  pickPage=shelfTrail.pop();void showEditorPickTopics();updateShelfBack();
-  document.getElementById('picks-section').scrollIntoView({block:'start'});
-});
+const updateShelfBack=()=>{shelfBack.hidden=shelfTrail.length===0;};
+$('#topic-back').addEventListener('click',()=>{showEditorPickTopics();$('#picks-section').scrollIntoView({block:'start'});});
+editorButton.addEventListener('click',()=>{shelfTrail.length=0;pickPage=0;showEditorPickTopics();updateShelfBack();});
+$('#refresh-editor-picks').addEventListener('click',()=>{if(pickPage+1>=PICK_SHELF_COUNT)shelfTrail.length=0;else shelfTrail.push(pickPage);pickPage=(pickPage+1)%PICK_SHELF_COUNT;showEditorPickTopics();updateShelfBack();});
+shelfBack.addEventListener('click',()=>{if(!shelfTrail.length)return;pickPage=shelfTrail.pop();showEditorPickTopics();updateShelfBack();document.getElementById('picks-section').scrollIntoView({block:'start'});});
 loadDailyPickTopics();
 setInterval(loadDailyPickTopics,5*60*1000);
 let currentPickSlot=Math.floor(Date.now()/PICK_ROTATION_MS);
-setInterval(()=>{
-  const slot=Math.floor(Date.now()/PICK_ROTATION_MS);
-  if(slot!==currentPickSlot){
-    currentPickSlot=slot;recommendedShelfCache.clear();pickPage=0;shelfTrail.length=0;
-    if(picksViewMode==='recommended'){void showEditorPickTopics();updateShelfBack();}
-  }
-},60000);
+setInterval(()=>{const slot=Math.floor(Date.now()/PICK_ROTATION_MS);if(slot!==currentPickSlot){currentPickSlot=slot;pickPage=0;shelfTrail.length=0;showEditorPickTopics();updateShelfBack();}},60000);
 
 rankingButton.addEventListener('click', async () => {
-  const requestId = ++picksViewRequest;
-  picksViewMode='ranking';
   rankingButton.disabled = true;
-  editorPicks.hidden = true;
-  $('#topic-back').hidden = true;
-  pickAttribution.hidden = true;
-  rankingPagination.hidden = true;
-  pickResults.replaceChildren();
-  updateShelfBack();
+  recommendationRequestId++;
+  editorPicks.hidden = true;$('#topic-back').hidden=true;pickAttribution.hidden = true;pickResults.replaceChildren();
   picksStatus.textContent = '楽天市場のランキングを取得中…';
   try {
-    const response = await fetch('/api/picks/ranking');
-    const data = await response.json().catch(() => ({}));
-    if (requestId !== picksViewRequest) return;
-    if (!response.ok) throw new Error(data.error || `ランキングを取得できませんでした（HTTP ${response.status}）`);
-    rankingItems = (Array.isArray(data.items) ? data.items : [])
-      .filter(item => Number.isInteger(item?.rank) && item.rank >= 1 && item.rank <= 30)
-      .sort((a,b) => a.rank - b.rank);
-    rankingPage = 0;
-    rankingUpdatedAt = data.updatedAt ? `（楽天側の更新表示：${data.updatedAt}）` : '';
-    pickAttribution.hidden = false;
-    rankingPagination.hidden = rankingItems.length === 0;
-    renderRankingPage();
-    if (!rankingItems.length) picksStatus.textContent = 'ランキングに表示できる商品がありません。';
-  } catch (error) {
-    if (requestId !== picksViewRequest) return;
-    picksStatus.textContent = (error instanceof Error ? error.message : 'ランキングを取得できませんでした。') + ' 「商店おすすめを見る」から別の商品も探せます。';
-  } finally {
-    rankingButton.disabled = false;
-  }
+    const response=await fetch('/api/picks/ranking');
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(data.error || `ランキングを取得できませんでした（HTTP ${response.status}）`);
+    renderProductCards(pickResults, Array.isArray(data.items)?data.items:[],{ranked:true});
+    pickAttribution.hidden=false;
+    const updated=data.updatedAt?`（楽天側の更新表示：${data.updatedAt}）`:'';
+    picksStatus.textContent = `${data.items.length}件のランキング商品を表示${updated}。気になる商品を楽天市場で確認できます。`;
+    if(!data.items.length) picksStatus.textContent='ランキングに表示できる商品がありません。';
+  }catch(error){
+    picksStatus.textContent=(error instanceof Error?error.message:'ランキングを取得できませんでした。')+' 「商店おすすめを見る」から別の商品も探せます。';
+  }finally{rankingButton.disabled=false;}
 });
 
 rankingButton.click();

@@ -16,14 +16,14 @@ function getShelfData(html,now){
   return JSON.parse(out);
 }
 
-test('40 distinct themes are distributed into ten 4-topic shelves with no repeats until wrap',()=>{
+test('40 distinct themes are distributed into four shelves of up to 12 topics with no repeats until wrap',()=>{
   const expected=[];
   for(const file of pages){
     const html=readFileSync(file,'utf8');
     const data=getShelfData(html,Date.UTC(2026,10,6,3));
     assert.equal(data.total,40,`${file}: exactly forty themes`);
-    assert.equal(data.count,10,`${file}: exactly ten shelves`);
-    assert.deepEqual(data.shelves.map(s=>s.length),Array(10).fill(4));
+    assert.equal(data.count,4,`${file}: exactly ten shelves`);
+    assert.deepEqual(data.shelves.map(s=>s.length),[12,12,12,4]);
     const keywords=data.shelves.flat().map(v=>v.keyword);
     assert.equal(new Set(keywords).size,40,`${file}: no repeated topics within one traversal`);
     assert.deepEqual(data.wrapped,data.shelves[0].map(v=>v.keyword),`${file}: wrap back to first shelf`);
@@ -62,7 +62,7 @@ test('homepage still serves public shelves and old endpoints behave independentl
   assert.match(html,/商店おすすめを見る/);
   assert.match(html,/別の棚を見る/);
   assert.doesNotMatch(html,/name: '(腕時計|はちみつ)'/);
-  assert.equal(result.headers.get('X-Rakuten-UI-Version'),'v36');
+  assert.equal(result.headers.get('X-Rakuten-UI-Version'),'v35');
   const health=await worker.fetch(new Request('https://site.test/api/health'),{});
-  assert.equal((await health.json()).release,'v36');
+  assert.equal((await health.json()).release,'v35');
 });
