@@ -100,6 +100,8 @@ button.secondary,.shelf-back{background:#eee0c0!important;color:#593e25!importan
 /* Desktop: a four-column shelf of 12 real products; on narrow screens keep two columns. */
 @media(min-width:760px){#pick-results.shelf-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:759px){#pick-results.shelf-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.shelf-grid .shelf-genre{display:inline-block;margin:7px 11px 0;padding:3px 8px;border-radius:4px;background:#eaf0df;color:#40583c;font-size:11px;font-weight:700}
+.shelf-grid .shelf-reason{font-size:11px;line-height:1.6;color:#6b675b;margin:6px 11px 0;overflow-wrap:anywhere}
 </style>
 </head>
 <body><main>
@@ -129,7 +131,7 @@ button.secondary,.shelf-back{background:#eee0c0!important;color:#593e25!importan
   </section>
   <section class="panel" id="picks-section">
     <div class="panel-heading"><span class="section-icon" aria-hidden="true">🌿</span><div><small class="section-kicker">THE SHOPKEEPER'S PICKS</small><h2>人気のもの・商店おすすめ <span class="new-mark">PICK UP</span></h2></div></div>
-    <p class="help">人気商品は楽天市場の公式ランキングAPIから取得します。商店おすすめは独自の編集候補で、楽天の2026年冬トレンド予測に掲載された商品群と編集注目候補を紹介します。売上順位や将来の人気を保証するものではありません。<a href="https://corp.rakuten.co.jp/news/press/2026/1028_01.html" target="_blank" rel="noopener noreferrer">楽天の発表</a>。</p>
+    <p class="help">楽天ランキングは従来どおり1〜40位を表示。商店おすすめは楽天のジャンル別ランキングから商品を一つずつ選び、棚ごとにジャンルが偏らないよう配置します。Google Trends連携がONなら、関連検索語から見つかった商品候補も反映します。検索トレンドは商品の売上やSNS人気の保証ではありません。取得失敗時は編集候補を表示します。<a href="https://webservice.rakuten.co.jp/documentation/ichiba-item-ranking" target="_blank" rel="noopener noreferrer">楽天APIの説明</a>。<a href="https://corp.rakuten.co.jp/news/press/2026/1028_01.html" target="_blank" rel="noopener noreferrer">編集候補の元になった楽天の2026年冬予測</a>。</p>
     <div class="actions" style="margin-top:12px">
       <button id="load-ranking" type="button">楽天ランキングを見る</button>
       <button id="show-editor-picks" class="secondary" type="button">商店おすすめを見る</button>
@@ -216,6 +218,9 @@ const renderProductCards = (target, items, { ranked = false } = {}) => {
     const price = document.createElement('span'); price.className = 'price'; price.textContent = yen(item.price);
     const shop = document.createElement('span'); shop.className = 'shop'; shop.textContent = item.shop || 'ショップ名未取得';
     article.append(h2, price, shop);
+    if(item.genre){const genre=document.createElement('span');genre.className='shelf-genre';genre.textContent=item.isTrend?'検索トレンド関連':item.genre;article.append(genre);}
+    if(item.reason){const reason=document.createElement('p');reason.className='shelf-reason';reason.textContent=item.reason;article.append(reason);}
+
     const href = safe(item.url);
     if (href) {
       const link = document.createElement('a'); link.href = href; link.target = '_blank'; link.rel = 'noopener noreferrer sponsored'; link.textContent = '楽天市場で見る'; article.append(link);
@@ -241,23 +246,29 @@ form.addEventListener('submit', async (e) => {
   await searchProducts(keyword, results, status);
 });
 let recommendationRequestId=0;
-const loadRecommendedProducts=async(requestId,page)=>{
+let activeRecommendationShelfCount=4;
+const loadRecommendedProducts=async(requestId,page,attempt=0)=>{
   try{
-    const response=await fetch('/api/picks/ranking');
-    if(!response.ok) return; // Keep the editorial themes if ranking cannot be fetched.
+    const response=await fetch('/api/picks/recommended',{cache:'no-store'});
+    if(!response.ok)return; // Keep the editorial fallback on network/DB outages.
     const data=await response.json();
     if(requestId!==recommendationRequestId)return;
-    const products=Array.isArray(data.items)?data.items.filter(x=>x&&x.name&&x.url&&Number.isInteger(x.rank)):[];
-    if(!products.length)return;
-    // Observed Rakuten ranking position is a verified popularity signal, NOT an SNS trend claim.
-    const ordered=products.slice().sort((a,b)=>a.rank-b.rank);
-    const shelf=ordered.slice(page*PICKS_PER_SHELF,(page+1)*PICKS_PER_SHELF);
+    const products=Array.isArray(data.items)?data.items.filter(x=>x&&x.name&&x.url&&x.genre&&x.price>0):[];
+    if(!products.length){
+      if(data.pending && attempt<4)setTimeout(()=>loadRecommendedProducts(requestId,page,attempt+1),15000);
+      return;
+    }
+    activeRecommendationShelfCount=Math.ceil(products.length/PICKS_PER_SHELF);
+    const safePage=Math.min(page,activeRecommendationShelfCount-1);
+    const shelf=products.slice(safePage*PICKS_PER_SHELF,(safePage+1)*PICKS_PER_SHELF);
     if(!shelf.length)return;
     editorPicks.hidden=true;
     renderProductCards(pickResults,shelf);
-    picksStatus.textContent=`商店おすすめ ${page+1}棚：楽天売れ筋ランキングを参考に${shelf.length}商品を表示（SNSでの流行は未検証）。`;
+    const genres=new Set(shelf.map(p=>p.categoryId || p.genre)).size;
+    const trends=shelf.filter(p=>p.isTrend).length;
+    picksStatus.textContent=`商店おすすめ ${safePage+1}/${activeRecommendationShelfCount}棚：${shelf.length}商品・${genres}ジャンルを個別選定。${trends?'検索トレンド関連'+trends+'件を含む。':''}${data.current?'本日更新':'前回の棚を維持'}（SNSでの流行は未検証）。`;
     pickAttribution.hidden=false;
-  }catch{/* Keep the existing editorial topics as a fallback. */}
+  }catch{/* Keep the editorial fallback. */}
 };
 const showEditorPickTopics = () => {
   pickResults.replaceChildren(); pickAttribution.hidden = true;
@@ -323,7 +334,7 @@ const shelfBack=$('#shelf-back');
 const updateShelfBack=()=>{shelfBack.hidden=shelfTrail.length===0;};
 $('#topic-back').addEventListener('click',()=>{showEditorPickTopics();$('#picks-section').scrollIntoView({block:'start'});});
 editorButton.addEventListener('click',()=>{shelfTrail.length=0;pickPage=0;showEditorPickTopics();updateShelfBack();});
-$('#refresh-editor-picks').addEventListener('click',()=>{if(pickPage+1>=PICK_SHELF_COUNT)shelfTrail.length=0;else shelfTrail.push(pickPage);pickPage=(pickPage+1)%PICK_SHELF_COUNT;showEditorPickTopics();updateShelfBack();});
+$('#refresh-editor-picks').addEventListener('click',()=>{const count=Math.max(1,activeRecommendationShelfCount);if(pickPage+1>=count)shelfTrail.length=0;else shelfTrail.push(pickPage);if(count===PICK_SHELF_COUNT)pickPage=(pickPage+1)%PICK_SHELF_COUNT;else pickPage=(pickPage+1)%count;showEditorPickTopics();updateShelfBack();});
 shelfBack.addEventListener('click',()=>{if(!shelfTrail.length)return;pickPage=shelfTrail.pop();showEditorPickTopics();updateShelfBack();document.getElementById('picks-section').scrollIntoView({block:'start'});});
 loadDailyPickTopics();
 setInterval(loadDailyPickTopics,5*60*1000);
