@@ -1,3 +1,4 @@
+import { selectWithJoker } from "./joker-strategy.js";
 import { generateNarrative } from './threads-story-ai.js';
 import { latestTrends, selectTrendKeyword, trendCandidateScore } from './trends.js';
 import { triviaAnchors } from './daily.js';
@@ -140,7 +141,15 @@ export async function runAutomation(env,execute,{manual=false}={}){
     // Prices and ranking are observable signals; external trend popularity is NOT verified.
     const available=candidates.filter(p=>!blocked.has(productKey(p))).sort((a,b)=>selectScore(b)+trendCandidateScore(b,keyword)-selectScore(a)-trendCandidateScore(a,keyword));
     if(!available.length)throw new Error('NO_ELIGIBLE_PRODUCTS');
-    const p=available[0];key=productKey(p);
+    let p=available[0];
+    if(env.JOKER_STRATEGY_ENABLED==="true"){
+      const history=await env.DB.prepare("SELECT product_key,status,detail FROM yodan_auto_jobs ORDER BY created_at DESC LIMIT 12").all();
+      const picked=await selectWithJoker(env,available,{keyword:keyword||word,history:(history.results||[]).map(x=>({product_key:x.product_key,status:x.status,detail:String(x.detail||"").slice(0,100)}))});
+      p=picked.product;
+      await env.DB.prepare("CREATE TABLE IF NOT EXISTS joker_product_decisions(slot TEXT PRIMARY KEY, product_key TEXT NOT NULL, reason TEXT NOT NULL)").run();
+      await env.DB.prepare("INSERT INTO joker_product_decisions(slot,product_key,reason) VALUES(?,?,?)").bind(slot,productKey(p),picked.reason).run();
+    }
+    key=productKey(p);
     articleId=crypto.randomUUID();
     // Unique product reservation prevents a second automation from selecting it.
     const reserved=await env.DB.prepare('INSERT INTO yodan_auto_products (product_key,article_id,selected_at) VALUES (?,?,?) ON CONFLICT(product_key) DO UPDATE SET article_id=excluded.article_id,selected_at=excluded.selected_at WHERE yodan_auto_products.selected_at < ?').bind(key,articleId,iso(),new Date(Date.now()-30*86400000).toISOString()).run();
