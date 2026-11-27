@@ -25,5 +25,11 @@
   },
   "vars": {
     "RAKUTEN_SITE_ORIGIN": "https://rakuten-auto-affiliate.116kousei0428.workers.dev"
-  }
+  },
+  "services": [
+    {
+      "binding": "JOKER_CORE",
+      "service": "joker-core"
+    }
+  ]
 }

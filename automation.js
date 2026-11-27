@@ -1,4 +1,5 @@
 import { generateNarrative } from './threads-story-ai.js';
+import { selectWithJoker, jokerStrategyConfigured } from './joker-strategy.js';
 import { latestTrends, selectTrendKeyword, trendCandidateScore } from './trends.js';
 import { triviaAnchors } from './daily.js';
 // Yodan Shoten v22: server-side opt-in Threads automation.
@@ -35,7 +36,7 @@ export async function automationStatus(env){
   const today=japanParts().date;
   const logs=await env.DB.prepare('SELECT slot,product_key,status,article_id,detail,updated_at FROM yodan_auto_jobs ORDER BY created_at DESC LIMIT 50').all();
   const todayJobs=(logs.results||[]).filter(x=>x.slot.startsWith(today));
-  return {enabled:settings.enabled===1,dailyTarget:settings.daily_target,mixEnabled:extra?.mix_enabled===1,triviaShare:Number(extra?.trivia_share??50),trendEnabled:extra?.trend_enabled===1,updatedAt:settings.updated_at,today,successToday:todayJobs.filter(x=>x.status==='published').length,logs:logs.results||[],imageAutoAttach:false,configuredOrigin:Boolean(env.AUTO_PUBLIC_ORIGIN||env.RAKUTEN_SITE_ORIGIN),automationReady:Boolean((env.AUTO_PUBLIC_ORIGIN||env.RAKUTEN_SITE_ORIGIN)&&env.AI_ADMIN_TOKEN&&env.THREADS_ACCESS_TOKEN&&env.AI&&env.DB)};
+  return {enabled:settings.enabled===1,dailyTarget:settings.daily_target,mixEnabled:extra?.mix_enabled===1,triviaShare:Number(extra?.trivia_share??50),trendEnabled:extra?.trend_enabled===1,updatedAt:settings.updated_at,today,successToday:todayJobs.filter(x=>x.status==='published').length,logs:logs.results||[],imageAutoAttach:false,jokerStrategyConfigured:jokerStrategyConfigured(env),configuredOrigin:Boolean(env.AUTO_PUBLIC_ORIGIN||env.RAKUTEN_SITE_ORIGIN),automationReady:Boolean((env.AUTO_PUBLIC_ORIGIN||env.RAKUTEN_SITE_ORIGIN)&&env.AI_ADMIN_TOKEN&&env.THREADS_ACCESS_TOKEN&&env.AI&&env.DB)};
 }
 export async function automationApi(request,env,execute){
   if(request.method==='GET')return Response.json(await automationStatus(env));
@@ -56,8 +57,8 @@ export async function automationApi(request,env,execute){
     return Response.json(await automationStatus(env));
   }
   // Explicit test-run action; never bypasses the OFF switch.
-  if(body?.action!=='runOnce')return Response.json({error:'Unsupported action'},{status:400});
-  const result=await runAutomation(env,execute,{manual:true});
+  if(!['runOnce','runDue'].includes(body?.action))return Response.json({error:'Unsupported action'},{status:400});
+  const result=await runAutomation(env,execute,{manual:body.action==='runOnce'});
   return Response.json(result,{status:result.ok?200:409});
 }
 const productKey=(p)=>String(p.code||p.url||'').slice(0,400);
@@ -140,7 +141,8 @@ export async function runAutomation(env,execute,{manual=false}={}){
     // Prices and ranking are observable signals; external trend popularity is NOT verified.
     const available=candidates.filter(p=>!blocked.has(productKey(p))).sort((a,b)=>selectScore(b)+trendCandidateScore(b,keyword)-selectScore(a)-trendCandidateScore(a,keyword));
     if(!available.length)throw new Error('NO_ELIGIBLE_PRODUCTS');
-    const p=available[0];key=productKey(p);
+    const selected=await selectWithJoker(env,available,{category:word,trend:keyword,date:jp.date});
+    const p=selected.product;key=productKey(p);
     articleId=crypto.randomUUID();
     // Unique product reservation prevents a second automation from selecting it.
     const reserved=await env.DB.prepare('INSERT INTO yodan_auto_products (product_key,article_id,selected_at) VALUES (?,?,?) ON CONFLICT(product_key) DO UPDATE SET article_id=excluded.article_id,selected_at=excluded.selected_at WHERE yodan_auto_products.selected_at < ?').bind(key,articleId,iso(),new Date(Date.now()-30*86400000).toISOString()).run();
@@ -177,7 +179,7 @@ export async function runAutomation(env,execute,{manual=false}={}){
     const posted=await internalJson(execute,origin,`/api/social/threads/${articleId}/publish`,{method:'POST',headers,body:JSON.stringify({attachImage:false})});
     if(posted.status!=='published')throw new Error('UNCONFIRMED_POST');
     await mark('published',String(posted.postId||''));
-    return {ok:true,status:'published',kind:'pr',slot,articleId};
+    return {ok:true,status:'published',kind:'pr',slot,articleId,selectionSource:selected.source};
   }catch(e){
     const code=e instanceof Error?e.message:'UNKNOWN';
     // Unknown outbound outcomes must never be retried automatically.
