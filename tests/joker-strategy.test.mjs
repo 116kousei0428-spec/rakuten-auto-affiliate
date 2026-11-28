@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {selectWithJoker,jokerStrategyConfigured} from "../joker-strategy.js";
+import {selectWithJoker,jokerStrategyConfigured,probeJokerStrategy} from "../joker-strategy.js";
 import {automationApi} from "../automation.js";
 const a={code:"a",name:"商品A",price:1200,rank:1,caption:"説明",url:"https://example.invalid/a"},b={code:"b",name:"商品B",price:2500,rank:2,url:"https://example.invalid/b"};
 const token="a".repeat(64);
@@ -8,3 +8,8 @@ test("disabled selection never invokes the binding",async()=>{const env={JOKER_S
 test("JOKER can select only an already filtered original product",async()=>{let calls=0;const env={JOKER_STRATEGY_ENABLED:"true",JOKER_STRATEGY_TOKEN:token,JOKER_CORE:{async fetch(req){calls++;assert.equal(new URL(req.url).pathname,"/api/strategy/product");assert.equal(req.headers.get("Authorization"),"Bearer "+token);const body=await req.json();assert.equal(body.candidates.length,2);assert.equal(body.candidates[1].index,1);assert.equal("url" in body.candidates[1],false);return Response.json({index:1,reason:"test",product:{name:"fake"}})}}};assert.equal((await selectWithJoker(env,[a,a,b])).product,b);assert.equal(calls,1)});
 test("invalid index, unauthorized, quota and failed response all fall back",async()=>{for(const response of [()=>Response.json({index:9,reason:"x"}),()=>new Response("quota",{status:429}),()=>new Response("bad",{status:401}),()=>{throw Error("offline")}]){const env={JOKER_STRATEGY_ENABLED:"true",JOKER_STRATEGY_TOKEN:token,JOKER_CORE:{fetch:response}};assert.deepEqual(await selectWithJoker(env,[a,b]),{product:a,source:"local"})}});
 test("runDue preserves automation OFF and avoids any external requests",async()=>{const env={DB:{prepare(){return {bind(){return this},async run(){return {meta:{changes:1}}},async first(){return {enabled:0,daily_target:20}}}}}};const req=new Request("https://example.test/api/automation",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"runDue"})});const r=await automationApi(req,env,()=>{throw Error("must not call")});assert.equal(r.status,409);assert.deepEqual(await r.json(),{ok:false,reason:"DISABLED"})});
+
+test("strategy probe verifies the real contract without asking for a product decision",async()=>{
+ let calls=0;const env={JOKER_STRATEGY_ENABLED:"true",JOKER_STRATEGY_TOKEN:token,JOKER_CORE:{async fetch(req){calls++;assert.equal(req.method,"GET");assert.equal(new URL(req.url).pathname,"/api/strategy/health");assert.equal(req.headers.get("Authorization"),"Bearer "+token);return Response.json({contract:"joker-strategy-v1",authenticated:true,brainEnabled:false,budgetAvailable:true,privateValue:"not returned"})}}};
+ assert.equal((await probeJokerStrategy(env)).brainEnabled,false);assert.equal(calls,1);assert.ok(!JSON.stringify(await probeJokerStrategy(env)).includes("privateValue"));assert.deepEqual(await probeJokerStrategy({}),{state:"not_configured"});
+});

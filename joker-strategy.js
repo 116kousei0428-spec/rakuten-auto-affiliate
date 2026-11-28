@@ -22,3 +22,15 @@ export async function selectWithJoker(env,available,context={}){
   return {product:items[decision.index],source:"joker"};
  }catch{return fallback}
 }
+
+export async function probeJokerStrategy(env){
+ if(!jokerStrategyConfigured(env))return {state:"not_configured"};
+ try{
+ const req=new Request("https://joker.internal/api/strategy/health",{headers:{Authorization:"Bearer "+env.JOKER_STRATEGY_TOKEN},signal:AbortSignal.timeout(5000)});
+ const r=await env.JOKER_CORE.fetch(req);
+ if(!r.ok)return {state:"unverified",httpStatus:r.status};
+ const raw=await r.text();if(raw.length>2000)return {state:"unverified"};const d=JSON.parse(raw);
+ if(d.contract!=="joker-strategy-v1"||d.authenticated!==true||typeof d.brainEnabled!=="boolean"||typeof d.budgetAvailable!=="boolean")return {state:"unverified"};
+ return {state:"authenticated",contract:d.contract,authenticated:true,brainEnabled:d.brainEnabled,budgetAvailable:d.budgetAvailable};
+ }catch{return {state:"unverified"}}
+}
