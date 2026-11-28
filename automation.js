@@ -1,5 +1,5 @@
 import { generateNarrative } from './threads-story-ai.js';
-import { selectWithJoker, jokerStrategyConfigured } from './joker-strategy.js';
+import { selectWithJoker, jokerStrategyConfigured, probeJokerStrategy } from './joker-strategy.js';
 import { latestTrends, selectTrendKeyword, trendCandidateScore } from './trends.js';
 import { triviaAnchors } from './daily.js';
 // Yodan Shoten v22: server-side opt-in Threads automation.
@@ -9,6 +9,7 @@ const JOBS = `CREATE TABLE IF NOT EXISTS yodan_auto_jobs (slot TEXT PRIMARY KEY,
 const PICKS = `CREATE TABLE IF NOT EXISTS yodan_auto_products (product_key TEXT PRIMARY KEY,article_id TEXT NOT NULL,selected_at TEXT NOT NULL)`;
 // Separate settings preserve older installations and existing D1 rows without ALTER TABLE.
 const EXTRAS = `CREATE TABLE IF NOT EXISTS yodan_auto_extras (id INTEGER PRIMARY KEY CHECK(id=1),mix_enabled INTEGER NOT NULL DEFAULT 0,trivia_share INTEGER NOT NULL DEFAULT 50,trend_enabled INTEGER NOT NULL DEFAULT 0)`;
+const SELECTIONS = `CREATE TABLE IF NOT EXISTS yodan_auto_selection (slot TEXT PRIMARY KEY,source TEXT NOT NULL CHECK(source IN ('joker','local'))) `;
 const MAX_TARGET=48; // 30-minute cron has at most 48 opportunities per day.
 // Schedule at fixed JST half-hour slots; never compress missed/failed posts into
 // unscheduled windows. A target is a cap, not a guaranteed delivery count.
@@ -25,7 +26,7 @@ const japanParts=(date=new Date())=>{
 };
 export async function ensureAutomationTables(env){
   if(!env.DB?.prepare) throw new Error('D1_MISSING');
-  for(const sql of [SCHEMA,JOBS,PICKS,EXTRAS]) await env.DB.prepare(sql).run();
+  for(const sql of [SCHEMA,JOBS,PICKS,EXTRAS,SELECTIONS]) await env.DB.prepare(sql).run();
   await env.DB.prepare("INSERT OR IGNORE INTO yodan_auto_settings (id,enabled,daily_target,updated_at) VALUES (1,0,20,?)").bind(iso()).run();
   await env.DB.prepare('INSERT OR IGNORE INTO yodan_auto_extras(id,mix_enabled,trivia_share,trend_enabled) VALUES(1,0,50,0)').run();
 }
@@ -35,8 +36,9 @@ export async function automationStatus(env){
   const extra=await env.DB.prepare('SELECT mix_enabled,trivia_share,trend_enabled FROM yodan_auto_extras WHERE id=1').first();
   const today=japanParts().date;
   const logs=await env.DB.prepare('SELECT slot,product_key,status,article_id,detail,updated_at FROM yodan_auto_jobs ORDER BY created_at DESC LIMIT 50').all();
-  const todayJobs=(logs.results||[]).filter(x=>x.slot.startsWith(today));
-  return {enabled:settings.enabled===1,dailyTarget:settings.daily_target,mixEnabled:extra?.mix_enabled===1,triviaShare:Number(extra?.trivia_share??50),trendEnabled:extra?.trend_enabled===1,updatedAt:settings.updated_at,today,successToday:todayJobs.filter(x=>x.status==='published').length,logs:logs.results||[],imageAutoAttach:false,jokerStrategyConfigured:jokerStrategyConfigured(env),configuredOrigin:Boolean(env.AUTO_PUBLIC_ORIGIN||env.RAKUTEN_SITE_ORIGIN),automationReady:Boolean((env.AUTO_PUBLIC_ORIGIN||env.RAKUTEN_SITE_ORIGIN)&&env.AI_ADMIN_TOKEN&&env.THREADS_ACCESS_TOKEN&&env.AI&&env.DB)};
+  const counts=await env.DB.prepare("SELECT COUNT(CASE WHEN j.status='published' THEN 1 END) AS published,COUNT(CASE WHEN j.status='failed' THEN 1 END) AS failed,COUNT(CASE WHEN j.status='uncertain' OR j.status='sending' THEN 1 END) AS uncertain,COUNT(CASE WHEN j.status='published' AND s.source='joker' THEN 1 END) AS joker,COUNT(CASE WHEN j.status='published' AND s.source='local' THEN 1 END) AS local FROM yodan_auto_jobs j LEFT JOIN yodan_auto_selection s ON s.slot=j.slot WHERE j.slot>=? AND j.slot<?").bind(today,today+'~').first();
+  const probe=await probeJokerStrategy(env);
+  return {enabled:settings.enabled===1,dailyTarget:settings.daily_target,mixEnabled:extra?.mix_enabled===1,triviaShare:Number(extra?.trivia_share??50),trendEnabled:extra?.trend_enabled===1,updatedAt:settings.updated_at,today,successToday:Number(counts?.published||0),failedToday:Number(counts?.failed||0),uncertainToday:Number(counts?.uncertain||0),jokerPublishedToday:Number(counts?.joker||0),localPublishedToday:Number(counts?.local||0),countScope:'all_jst_day_jobs',jokerStrategyProbe:probe,logs:logs.results||[],imageAutoAttach:false,jokerStrategyConfigured:jokerStrategyConfigured(env),configuredOrigin:Boolean(env.AUTO_PUBLIC_ORIGIN||env.RAKUTEN_SITE_ORIGIN),automationReady:Boolean((env.AUTO_PUBLIC_ORIGIN||env.RAKUTEN_SITE_ORIGIN)&&env.AI_ADMIN_TOKEN&&env.THREADS_ACCESS_TOKEN&&env.AI&&env.DB)};
 }
 export async function automationApi(request,env,execute){
   if(request.method==='GET')return Response.json(await automationStatus(env));
@@ -104,7 +106,7 @@ export async function runAutomation(env,execute,{manual=false}={}){
   const now=iso();
   const claimed=await env.DB.prepare("INSERT OR IGNORE INTO yodan_auto_jobs (slot,status,created_at,updated_at) VALUES (?,'claimed',?,?)").bind(slot,now,now).run();
   if((claimed.meta?.changes??0)!==1)return {ok:true,reason:'SLOT_ALREADY_CLAIMED'};
-  let articleId=null, key=null;
+  let articleId=null, key=null, outboundStarted=false;
   const mark=async (status,detail='')=>env.DB.prepare('UPDATE yodan_auto_jobs SET status=?,detail=?,product_key=?,article_id=?,updated_at=? WHERE slot=?').bind(status,detail,key,articleId,iso(),slot).run();
   try{
     if(isTrivia){
@@ -121,7 +123,7 @@ export async function runAutomation(env,execute,{manual=false}={}){
       const ts=iso();
       await env.DB.prepare('CREATE TABLE IF NOT EXISTS threads_posts (article_id TEXT PRIMARY KEY,body TEXT NOT NULL,status TEXT NOT NULL DEFAULT \'draft\',container_id TEXT,external_id TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,published_at TEXT)').run();
       await env.DB.prepare("INSERT INTO threads_posts (article_id,body,status,created_at,updated_at) VALUES (?,?,'draft',?,?)").bind(articleId,text,ts,ts).run();
-      await mark('sending');
+      await mark('sending');outboundStarted=true;
       const posted=await internalJson(execute,origin,`/api/social/threads/${articleId}/publish`,{method:'POST',headers,body:JSON.stringify({attachImage:false})});
       if(posted.status!=='published')throw new Error('UNCONFIRMED_POST');
       await mark('published',String(posted.postId||''));
@@ -143,6 +145,7 @@ export async function runAutomation(env,execute,{manual=false}={}){
     if(!available.length)throw new Error('NO_ELIGIBLE_PRODUCTS');
     const selected=await selectWithJoker(env,available,{category:word,trend:keyword,date:jp.date});
     const p=selected.product;key=productKey(p);
+    await env.DB.prepare('INSERT INTO yodan_auto_selection(slot,source) VALUES (?,?)').bind(slot,selected.source).run();
     articleId=crypto.randomUUID();
     // Unique product reservation prevents a second automation from selecting it.
     const reserved=await env.DB.prepare('INSERT INTO yodan_auto_products (product_key,article_id,selected_at) VALUES (?,?,?) ON CONFLICT(product_key) DO UPDATE SET article_id=excluded.article_id,selected_at=excluded.selected_at WHERE yodan_auto_products.selected_at < ?').bind(key,articleId,iso(),new Date(Date.now()-30*86400000).toISOString()).run();
@@ -173,7 +176,7 @@ export async function runAutomation(env,execute,{manual=false}={}){
     if([...text].length>500)throw new Error('POST_TOO_LONG');
     await env.DB.prepare('CREATE TABLE IF NOT EXISTS threads_posts (article_id TEXT PRIMARY KEY,body TEXT NOT NULL,status TEXT NOT NULL DEFAULT \'draft\',container_id TEXT,external_id TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,published_at TEXT)').run();
     await env.DB.prepare("INSERT INTO threads_posts (article_id,body,status,created_at,updated_at) VALUES (?,?,'draft',?,?)").bind(articleId,text,ts,ts).run();
-    await mark('sending');
+    await mark('sending');outboundStarted=true;
     // Auto images remain disabled unless per-image rights and distribution authorization are verifiable.
     // The existing manual publish flow still supports individually confirmed image permissions.
     const posted=await internalJson(execute,origin,`/api/social/threads/${articleId}/publish`,{method:'POST',headers,body:JSON.stringify({attachImage:false})});
@@ -183,9 +186,10 @@ export async function runAutomation(env,execute,{manual=false}={}){
   }catch(e){
     const code=e instanceof Error?e.message:'UNKNOWN';
     // Unknown outbound outcomes must never be retried automatically.
-    await mark(code.includes('THREADS')||code.includes('INTERNAL_502')?'uncertain':'failed',code.slice(0,150));
+    const status=outboundStarted||code.includes('THREADS')||code.includes('INTERNAL_502')?'uncertain':'failed';
+    await mark(status,code.slice(0,150));
     console.error('v22 auto job failed',{code:code.slice(0,70)});
-    return {ok:false,status:'failed',reason:code.slice(0,90),slot};
+    return {ok:false,status,reason:code.slice(0,90),slot};
   }
 }
 
